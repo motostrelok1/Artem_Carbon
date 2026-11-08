@@ -17,3 +17,45 @@
 .lesson-first-content .hero-copy{font-size:16px}
 @media(max-width:900px){.lesson-hero{height:auto;min-height:800px;max-height:none}.lesson-first-wrap{grid-template-columns:1fr;gap:25px;padding:100px 0 80px}.lesson-first-poster{max-width:370px;width:100%;height:350px;margin:auto}.lesson-first-content h1{font-size:clamp(57px,11vw,90px)}.lesson-hero .hero-image{background-position:center center}.lesson-hero .hero-shade{background:rgba(5,6,8,.79)}}
 @media(max-width:550px){.lesson-first-wrap{padding-top:95px;gap:20px}.lesson-first-poster{height:280px;max-width:260px}.lesson-first-content h1{font-size:62px;line-height:.92;margin:15px 0}.lesson-first-content h2{font-size:23px}.lesson-first-content .hero-copy{font-size:14px}.lesson-first-detail{margin-top:16px}.lesson-first-detail span{max-width:160px;line-height:1.5}.lesson-first-content .actions{margin-top:18px}.lesson-first-content .btn{width:100%}.lesson-first-content .micro{margin-bottom:0}.lesson-hero{min-height:870px}}
+
+/* Full-bleed original automobile photo, text in open space to its right. */
+.lesson-hero{height:100svh;min-height:690px;max-height:none;background:#090a0c}
+.lesson-hero .hero-image{
+  background-image:url('./assets/hero-car.jpg');
+  background-size:cover;
+  background-position:center center;
+  filter:none;
+  transform:none;
+}
+.lesson-hero .hero-shade{
+  background:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.08) 46%,rgba(0,0,0,.58) 69%,rgba(0,0,0,.72) 100%),linear-gradient(0deg,rgba(0,0,0,.40),transparent 25%);
+}
+.lesson-first-wrap{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  width:100%;
+  max-width:none;
+  padding:100px max(5%,calc((100% - 1440px)/2)) 65px;
+}
+.lesson-first-content{width:min(43%,570px);max-width:570px;text-shadow:0 2px 18px rgba(0,0,0,.7)}
+.lesson-first-content h1{font-size:clamp(66px,6.6vw,105px)}
+.lesson-first-content .actions{gap:12px}
+.lesson-first-content .btn{background-color:#0b0b0bbd}
+.lesson-first-content .btn.red{background-color:var(--red)}
+@media(max-width:900px){
+  .lesson-hero{min-height:780px}
+  .lesson-hero .hero-image{background-position:38% center}
+  .lesson-hero .hero-shade{background:linear-gradient(90deg,rgba(0,0,0,.20),rgba(0,0,0,.83))}
+  .lesson-first-wrap{display:flex;align-items:center;justify-content:flex-end;padding:105px 6% 75px}
+  .lesson-first-content{width:min(64%,520px);max-width:none}
+}
+@media(max-width:550px){
+  .lesson-hero{height:auto;min-height:850px}
+  .lesson-hero .hero-image{background-position:35% center}
+  .lesson-hero .hero-shade{background:linear-gradient(0deg,rgba(0,0,0,.91) 0%,rgba(0,0,0,.78) 53%,rgba(0,0,0,.12) 100%)}
+  .lesson-first-wrap{align-items:flex-end;justify-content:flex-start;min-height:850px;padding:120px 5% 65px}
+  .lesson-first-content{width:100%}
+  .lesson-first-content h1{font-size:clamp(60px,14vw,84px)}
+  .lesson-first-content h2{font-size:23px}
+}
