@@ -59,3 +59,35 @@
   .lesson-first-content h1{font-size:clamp(60px,14vw,84px)}
   .lesson-first-content h2{font-size:23px}
 }
+
+/* Fixed scenic background, matching the reference's stationary image and moving content. */
+body{background:#09090c;isolation:isolate}
+body::before{
+ content:"";
+ position:fixed;
+ inset:0;
+ z-index:-1;
+ pointer-events:none;
+ background-image:url('./hero-car.jpg');
+ background-repeat:no-repeat;
+ background-size:cover;
+ background-position:center center;
+}
+main{position:relative}
+.lesson-hero{background:transparent;overflow:visible}
+.lesson-hero .hero-image{display:none}
+.lesson-hero .hero-shade{
+ background:linear-gradient(90deg,rgba(0,0,0,.06) 0%,rgba(0,0,0,.08) 38%,rgba(0,0,0,.48) 65%,rgba(0,0,0,.78) 100%),linear-gradient(0deg,rgba(0,0,0,.35),transparent 30%);
+}
+.shop{background:rgba(9,10,13,.92)}
+.about{background:rgba(7,7,9,.92)}
+footer{position:relative;background:rgba(7,7,9,.96)}
+@media(max-width:900px){
+ body::before{background-position:38% center}
+ .lesson-hero .hero-shade{background:linear-gradient(90deg,rgba(0,0,0,.16),rgba(0,0,0,.78))}
+}
+@media(max-width:550px){
+ body::before{background-position:33% center}
+ .lesson-hero .hero-shade{background:linear-gradient(0deg,rgba(0,0,0,.91),rgba(0,0,0,.66) 60%,rgba(0,0,0,.06))}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
