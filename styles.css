@@ -378,7 +378,7 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 #about .project-content-layout .gallery-dots{margin:8px 0}
 #about .project-description{
  min-width:0;
- height:clamp(250px,calc(47svh + 47px),560px);
+ height:clamp(250px,47svh,510px);
  background:rgba(12,13,17,.84);
  border:1px solid rgba(255,255,255,.26);
  box-shadow:0 12px 40px rgba(0,0,0,.35);
@@ -386,16 +386,7 @@ footer{position:relative;background:rgba(7,7,9,.96)}
  flex-direction:column;
  overflow:hidden;
 }
-#about .project-description h3{
- flex:none;
- margin:0;
- padding:16px 20px 12px;
- color:#fff;
- font-size:17px;
- letter-spacing:1.1px;
- text-align:left;
- border-bottom:1px solid rgba(255,255,255,.17);
-}
+
 #about .project-description-scroll{
  flex:1;
  min-height:0;
@@ -425,7 +416,6 @@ footer{position:relative;background:rgba(7,7,9,.96)}
  #about .project-content-layout{gap:14px;margin:12px auto}
  #about .project-content-layout .gallery-stage{height:auto;aspect-ratio:16/9!important}
  #about .project-description{height:360px}
- #about .project-description h3{padding:13px 15px}
  #about .project-description-scroll{padding:12px 15px 18px}
  #about .project-description-scroll p{font-size:14px}
 }
