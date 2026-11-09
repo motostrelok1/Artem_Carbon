@@ -422,3 +422,21 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 
 /* Align section 03 label with section 02 label on the shared left content edge. */
 #about > .eyebrow{text-align:left;width:100%;margin-left:0;margin-right:0}
+
+/* Repeat project social links on the opening screen, below the purchase actions. */
+.lesson-first-content .hero-socials{
+ display:flex;justify-content:flex-start;align-items:center;
+ flex-wrap:wrap;gap:8px;margin-top:15px;text-align:left;
+}
+.lesson-first-content .hero-socials>span{width:100%;color:#e3e3e7;font-size:12px}
+.lesson-first-content .hero-socials .social-link{
+ min-height:38px;padding:7px 10px;gap:7px;font-size:11px;
+ background:rgba(7,8,11,.58);backdrop-filter:blur(5px);
+}
+.lesson-first-content .hero-socials .social-link svg{width:19px;height:19px}
+.lesson-first-content .hero-socials .social-link:nth-of-type(3) svg{width:25px}
+@media(max-width:550px){
+ .lesson-first-content .hero-socials{gap:6px;margin-top:10px}
+ .lesson-first-content .hero-socials .social-link{flex:0 1 auto;padding:7px 8px;font-size:10px}
+ .lesson-first-content .hero-socials>span{font-size:11px}
+}
