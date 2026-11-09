@@ -64,27 +64,48 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
  void startMusic();
 })();
 
-/* Project carousel: exactly one large image, updated on navigation. */
+/* One-photo carousel with fullscreen viewer. */
 (()=>{
  const stage=document.getElementById('galleryStage');
  const photo=document.getElementById('projectPhoto');
  const count=document.getElementById('galleryCount');
  const dots=[...document.querySelectorAll('.gallery-dot')];
- if(!stage||!photo||!count)return;
+ const lightbox=document.getElementById('galleryLightbox');
+ const lightboxPhoto=document.getElementById('lightboxPhoto');
+ const lightboxCount=document.getElementById('lightboxCounter');
+ if(!stage||!photo||!count||!lightbox||!lightboxPhoto)return;
  const photos=['./1.jpg','./2.jpg','./3.jpg','./hero-car.jpg'];
- let current=0, startX=null;
- photos.slice(1).forEach(src=>{const img=new Image();img.src=src});
+ let current=0,stageTouch=null,lightboxTouch=null;
+ photos.slice(1).forEach(src=>{const image=new Image();image.src=src});
  function show(next){
   current=(next+photos.length)%photos.length;
-  photo.src=photos[current];
-  photo.alt='Автомобиль ARTEMS CARBON — фото '+(current+1);
-  count.textContent=String(current+1).padStart(2,'0')+' / '+String(photos.length).padStart(2,'0');
+  photo.src=photos[current];lightboxPhoto.src=photos[current];
+  const alt='Автомобиль ARTEMS CARBON — фото '+(current+1);
+  photo.alt=alt;lightboxPhoto.alt=alt;
+  const value=String(current+1).padStart(2,'0')+' / '+String(photos.length).padStart(2,'0');
+  count.textContent=value;lightboxCount.textContent=value;
   dots.forEach((dot,i)=>{const active=i===current;dot.classList.toggle('active',active);dot.setAttribute('aria-pressed',String(active))});
+ }
+ function openViewer(){show(current);lightbox.showModal()}
+ function swipe(element,get,set){
+  element.addEventListener('touchstart',e=>set(e.changedTouches[0].clientX),{passive:true});
+  element.addEventListener('touchend',e=>{const start=get();set(null);if(start===null)return;const dx=e.changedTouches[0].clientX-start;if(Math.abs(dx)>45)show(current+(dx<0?1:-1))},{passive:true});
  }
  document.getElementById('galleryPrev').addEventListener('click',()=>show(current-1));
  document.getElementById('galleryNext').addEventListener('click',()=>show(current+1));
+ document.getElementById('galleryExpand').addEventListener('click',openViewer);
+ photo.addEventListener('click',openViewer);
+ photo.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openViewer()}});
  dots.forEach((dot,i)=>dot.addEventListener('click',()=>show(i)));
- stage.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();show(current+(e.key==='ArrowRight'?1:-1))}});
- stage.addEventListener('touchstart',e=>{startX=e.changedTouches[0].clientX},{passive:true});
- stage.addEventListener('touchend',e=>{if(startX===null)return;const delta=e.changedTouches[0].clientX-startX;startX=null;if(Math.abs(delta)>45)show(current+(delta<0?1:-1))},{passive:true});
+ document.getElementById('lightboxClose').addEventListener('click',()=>lightbox.close());
+ document.getElementById('lightboxPrev').addEventListener('click',()=>show(current-1));
+ document.getElementById('lightboxNext').addEventListener('click',()=>show(current+1));
+ lightbox.addEventListener('click',e=>{if(e.target===lightbox)lightbox.close()});
+ document.addEventListener('keydown',e=>{
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+  if(!lightbox.open&&!stage.contains(document.activeElement))return;
+  e.preventDefault();show(current+(e.key==='ArrowRight'?1:-1));
+ });
+ swipe(stage,()=>stageTouch,v=>stageTouch=v);
+ swipe(lightbox,()=>lightboxTouch,v=>lightboxTouch=v);
 })();
