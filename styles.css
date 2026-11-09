@@ -440,3 +440,14 @@ footer{position:relative;background:rgba(7,7,9,.96)}
  .lesson-first-content .hero-socials .social-link{flex:0 1 auto;padding:7px 8px;font-size:10px}
  .lesson-first-content .hero-socials>span{font-size:11px}
 }
+
+/* Compact icons in the first-page header; retain full links in About. */
+.header .header-socials{display:flex;align-items:center;justify-content:center;gap:8px;flex:none}
+.header .header-social-link{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;flex:none;color:var(--red);background:rgba(8,9,12,.56);border:1px solid rgba(255,255,255,.3);border-radius:6px;transition:background .15s,border-color .15s}
+.header .header-social-link:hover,.header .header-social-link:focus-visible{background:rgba(242,37,50,.17);border-color:var(--red)}
+.header .header-social-link:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.header .header-social-link svg{width:20px;height:20px;display:block}
+.header .header-social-link:last-child svg{width:28px}
+@media(max-width:1250px){.header{gap:12px}.header nav{gap:15px}.header .header-socials{gap:5px}.header .header-social-link{width:34px;height:34px}.header .nav-action{padding:12px 13px}}
+@media(max-width:900px){.header .header-socials{margin-left:auto}.header .music-toggle{margin-left:0}.header .header-social-link{width:34px;height:34px}}
+@media(max-width:550px){.header{gap:4px}.header .logo{font-size:clamp(16px,5vw,22px)}.header .header-socials{gap:4px;margin-left:auto}.header .header-social-link{width:29px;height:32px}.header .header-social-link svg{width:17px;height:17px}.header .header-social-link:last-child svg{width:23px}.header .music-toggle{margin-right:4px;min-width:33px;width:33px;height:33px}.header .menu-btn{padding:2px}}
