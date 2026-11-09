@@ -429,3 +429,6 @@ footer{position:relative;background:rgba(7,7,9,.96)}
  #about .project-description-scroll{padding:12px 15px 18px}
  #about .project-description-scroll p{font-size:14px}
 }
+
+/* Align section 03 label with section 02 label on the shared left content edge. */
+#about > .eyebrow{text-align:left;width:100%;margin-left:0;margin-right:0}
