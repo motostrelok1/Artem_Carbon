@@ -221,3 +221,90 @@ footer{position:relative;background:rgba(7,7,9,.96)}
  #about .gallery-footnote{margin:12px auto!important}
  #about .socials{margin-top:20px}
 }
+
+/* Compact lesson section at the exact #lesson-details anchor. */
+#lesson-details{
+ scroll-margin-top:0;
+ min-height:100svh;
+ padding-top:22px;
+ padding-bottom:22px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+}
+#lesson-details .lesson-details-inner{max-width:1440px;margin-inline:auto;gap:clamp(22px,3vw,48px)}
+#lesson-details .lesson-details-copy>h2{font-size:clamp(36px,4.6vw,67px);margin:8px 0 14px}
+#lesson-details .lesson-details-copy>p:not(.eyebrow){margin-bottom:12px;font-size:clamp(14px,1vw,17px)}
+#lesson-details .lesson-details-price{margin:17px 0;padding:14px 0}
+#lesson-details .lesson-details-poster{min-height:0;max-height:calc(100svh - 50px)}
+#lesson-details .lesson-details-poster img{max-height:calc(100svh - 52px);width:100%;height:auto;object-fit:contain}
+@media(max-width:900px){
+ #lesson-details{min-height:0;padding-top:24px;padding-bottom:24px;display:block}
+ #lesson-details .lesson-details-inner{gap:20px}
+ #lesson-details .lesson-details-poster{max-height:none}
+ #lesson-details .lesson-details-poster img{max-height:680px}
+}
+@media(max-width:550px){
+ #lesson-details{padding-top:20px;padding-bottom:28px}
+ #lesson-details .lesson-details-copy>h2{font-size:40px}
+ #lesson-details .lesson-details-poster img{max-height:none}
+}
+
+/* Fit the carousel container around the photo, eliminating black side bars. */
+#about .gallery{
+ width:min(100%, calc((100svh - 300px) * 16 / 9), 1120px);
+ max-width:100%;
+ margin:12px auto;
+}
+#about .gallery-frame{width:100%;background:transparent}
+#about .gallery-stage{
+ width:100%;
+ height:auto;
+ max-height:none;
+ min-height:0;
+ aspect-ratio:16/9;
+}
+#about .project-photo{
+ width:100%!important;
+ height:100%!important;
+ max-height:none!important;
+ aspect-ratio:16/9!important;
+ object-fit:cover;
+ cursor:zoom-in;
+}
+.gallery-expand{
+ position:absolute;right:12px;top:12px;z-index:3;
+ width:43px;height:43px;border:1px solid #ffffffa0;
+ background:#08080ac4;color:white;font-size:25px;cursor:pointer;
+}
+.gallery-expand:hover{background:var(--red)}
+.gallery-lightbox{
+ position:fixed;inset:0;
+ width:100vw;max-width:100vw;
+ height:100dvh;max-height:100dvh;
+ padding:0;margin:0;border:0;
+ background:rgba(0,0,0,.97);color:#fff;
+}
+.gallery-lightbox[open]{display:flex;align-items:center;justify-content:center}
+.gallery-lightbox::backdrop{background:rgba(0,0,0,.94)}
+.gallery-lightbox img{display:block;max-width:100vw;max-height:100dvh;width:auto;height:auto;object-fit:contain}
+.lightbox-close,.lightbox-nav{
+ position:fixed;z-index:5;border:1px solid #ffffff77;
+ color:#fff;background:#111b;cursor:pointer;
+}
+.lightbox-close{right:22px;top:18px;width:48px;height:48px;font-size:25px}
+.lightbox-nav{top:50%;transform:translateY(-50%);width:54px;height:65px;font-size:33px}
+.lightbox-prev{left:18px}.lightbox-next{right:18px}
+.lightbox-counter{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:5;padding:6px 13px;background:#111b;font-size:13px}
+@media(max-width:900px){
+ #about .gallery{width:min(100%,calc((100svh - 285px) * 16 / 9))}
+}
+@media(max-width:550px){
+ #about .gallery{width:100%}
+ #about .gallery-stage,#about .project-photo{aspect-ratio:16/9!important;height:auto}
+ #about .project-photo{height:100%!important}
+ .gallery-expand{width:36px;height:36px;font-size:21px;right:8px;top:8px}
+ .lightbox-nav{width:38px;height:52px;font-size:24px}
+ .lightbox-prev{left:5px}.lightbox-next{right:5px}
+ .lightbox-close{right:10px;top:10px}
+}
