@@ -173,3 +173,11 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 .lesson-poster-fallback small{display:block;font-size:13px;letter-spacing:2px;margin-top:25px}
 @media(max-width:900px){.lesson-details-inner{grid-template-columns:1fr}.lesson-details-poster{min-height:260px;max-width:530px;margin:auto}}
 @media(max-width:550px){.lesson-details-copy>p:not(.eyebrow){font-size:15px}.lesson-details-price{gap:12px}.lesson-details-price span{max-width:140px;line-height:1.5}.lesson-details-poster{min-height:270px}}
+
+/* Clickable project social icons: local SVGs, no external icon library. */
+.socials .social-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:9px 14px;border:1px solid rgba(255,255,255,.4);transition:border-color .15s,background .15s;color:#fff;text-decoration:none}
+.socials .social-link svg{display:block;flex:none;width:22px;height:22px;color:var(--red)}
+.socials .social-link:nth-of-type(3) svg{width:30px}
+.socials .social-link:hover,.socials .social-link:focus-visible{border-color:var(--red);background:rgba(242,37,50,.16)}
+.socials .social-link:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media(max-width:550px){.socials .social-link{flex:1 1 130px}}
