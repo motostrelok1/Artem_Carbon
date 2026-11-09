@@ -155,3 +155,21 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 .gallery-dot.active{width:30px;border-radius:8px;background:var(--red);border-color:var(--red)}
 .gallery-dot:focus-visible{outline:2px solid white;outline-offset:4px}
 @media(max-width:550px){.about .gallery-stage,.about .project-photo{aspect-ratio:4/3}}
+
+/* Lesson details: second page section reached via «Что в уроке». */
+#lesson-details{scroll-margin-top:0}
+.lesson-details{background:rgba(9,10,13,.42)}
+.lesson-details-inner{width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.86fr);align-items:center;gap:clamp(28px,5vw,84px)}
+.lesson-details-copy{text-align:left}
+.lesson-details-copy>p:not(.eyebrow){max-width:590px;color:#e2e2e8;font-size:17px}
+.lesson-details-price{display:flex;align-items:center;justify-content:space-between;gap:24px;border-top:1px solid #ffffff4c;border-bottom:1px solid #ffffff4c;padding:20px 0;margin:28px 0}
+.lesson-details-price span{font-size:12px;letter-spacing:1.4px;color:#d3d3d8;font-weight:bold}
+.lesson-details-price strong{font-size:clamp(28px,3vw,43px);white-space:nowrap}
+.lesson-details-poster{min-height:380px;width:100%;position:relative;background:rgba(15,16,21,.8);border:1px solid #ffffff44;box-shadow:0 18px 55px #0009;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.lesson-details-poster img{width:100%;max-height:760px;height:auto;object-fit:contain;display:block}
+.lesson-details-poster img[hidden]{display:none}
+.lesson-poster-fallback{font-size:clamp(38px,6vw,85px);font-weight:1000;text-align:center;line-height:1.05;padding:45px}
+.lesson-poster-fallback b{display:block;color:var(--red)}
+.lesson-poster-fallback small{display:block;font-size:13px;letter-spacing:2px;margin-top:25px}
+@media(max-width:900px){.lesson-details-inner{grid-template-columns:1fr}.lesson-details-poster{min-height:260px;max-width:530px;margin:auto}}
+@media(max-width:550px){.lesson-details-copy>p:not(.eyebrow){font-size:15px}.lesson-details-price{gap:12px}.lesson-details-price span{max-width:140px;line-height:1.5}.lesson-details-poster{min-height:270px}}
