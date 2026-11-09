@@ -145,3 +145,13 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 .about .socials{margin-top:32px}
 #about{scroll-margin-top:24px}
 @media(max-width:550px){.about .gallery-stage{min-height:220px;aspect-ratio:4/3}.about .gallery-arrow{width:40px;height:48px;font-size:23px}.about .gallery-thumbs{gap:7px}}
+
+/* One-image carousel: images never stack, only the visible frame is rendered. */
+.about .gallery{max-width:1170px;width:100%;margin:38px auto 42px}
+.about .gallery-stage{position:relative;width:100%;aspect-ratio:16/9;min-height:0;overflow:hidden}
+.about .project-photo{display:block!important;position:relative!important;width:100%!important;height:100%!important;aspect-ratio:16/9;object-fit:contain;margin:0 auto}
+.gallery-dots{display:flex;gap:12px;align-items:center;justify-content:center;margin:12px 0}
+.gallery-dot{height:12px;width:12px;padding:0;border:1px solid #fff9;border-radius:50%;background:#fff5;cursor:pointer}
+.gallery-dot.active{width:30px;border-radius:8px;background:var(--red);border-color:var(--red)}
+.gallery-dot:focus-visible{outline:2px solid white;outline-offset:4px}
+@media(max-width:550px){.about .gallery-stage,.about .project-photo{aspect-ratio:4/3}}
