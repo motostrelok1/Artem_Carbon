@@ -119,3 +119,29 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 #musicStart{padding:9px 12px;background:var(--red);border-radius:6px}
 #musicDismiss{padding:6px;background:transparent}
 @media(max-width:550px){.music-prompt{left:16px;right:16px;bottom:16px}}
+
+/* Project carousel moved onto the home page. */
+
+.gallery{max-width:1170px;margin:0 auto}
+.gallery-frame{position:relative;overflow:hidden;border:1px solid #ffffff30;background:#111;box-shadow:0 20px 65px #0008}
+.gallery-stage{position:relative;aspect-ratio:16/9;min-height:260px}
+.gallery-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;visibility:hidden;transition:opacity .35s ease}
+.gallery-slide.active{opacity:1;visibility:visible}
+.gallery-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:52px;height:60px;border:1px solid #ffffff55;background:#07080bbf;color:#fff;font-size:29px;cursor:pointer}
+.gallery-arrow:hover,.gallery-arrow:focus-visible{background:#ef2836}
+.gallery-prev{left:12px}.gallery-next{right:12px}
+.gallery-meta{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:17px 4px;color:#c7c7cc;font-size:12px;letter-spacing:1.2px}
+.gallery-meta strong{color:white;font-size:16px}
+.gallery-thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.gallery-thumb{padding:0;aspect-ratio:16/9;border:2px solid transparent;background:#151519;opacity:.65;cursor:pointer;overflow:hidden}
+.gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.gallery-thumb.active{border-color:#f22532;opacity:1}
+.gallery-thumb:hover{opacity:1}
+.gallery-footnote{margin:25px auto 0;text-align:center;color:#a7a7b0;font-size:13px}
+
+.about .gallery{margin:38px auto 42px;text-align:left}
+.about .gallery-meta{color:#c7c7cc}
+.about .gallery-footnote{max-width:none!important;margin:25px auto!important;text-align:center;color:#b6b6bf!important}
+.about .socials{margin-top:32px}
+#about{scroll-margin-top:24px}
+@media(max-width:550px){.about .gallery-stage{min-height:220px;aspect-ratio:4/3}.about .gallery-arrow{width:40px;height:48px;font-size:23px}.about .gallery-thumbs{gap:7px}}
