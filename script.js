@@ -64,26 +64,27 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
  void startMusic();
 })();
 
-/* Inline project carousel */
-
+/* Project carousel: exactly one large image, updated on navigation. */
 (()=>{
- const slides=[...document.querySelectorAll('.gallery-slide')];
- const thumbs=[...document.querySelectorAll('.gallery-thumb')];
- const count=document.getElementById('galleryCount');
  const stage=document.getElementById('galleryStage');
- let index=0;
- function show(n){
-  index=(n+slides.length)%slides.length;
-  slides.forEach((el,i)=>el.classList.toggle('active',i===index));
-  thumbs.forEach((el,i)=>{el.classList.toggle('active',i===index);if(i===index)el.setAttribute('aria-current','true');else el.removeAttribute('aria-current')});
-  count.textContent=String(index+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+ const photo=document.getElementById('projectPhoto');
+ const count=document.getElementById('galleryCount');
+ const dots=[...document.querySelectorAll('.gallery-dot')];
+ if(!stage||!photo||!count)return;
+ const photos=['./1.jpg','./2.jpg','./3.jpg'];
+ let current=0, startX=null;
+ photos.slice(1).forEach(src=>{const img=new Image();img.src=src});
+ function show(next){
+  current=(next+photos.length)%photos.length;
+  photo.src=photos[current];
+  photo.alt='Автомобиль ARTEMS CARBON — фото '+(current+1);
+  count.textContent=String(current+1).padStart(2,'0')+' / '+String(photos.length).padStart(2,'0');
+  dots.forEach((dot,i)=>{const active=i===current;dot.classList.toggle('active',active);dot.setAttribute('aria-pressed',String(active))});
  }
- document.getElementById('galleryPrev').addEventListener('click',()=>show(index-1));
- document.getElementById('galleryNext').addEventListener('click',()=>show(index+1));
- thumbs.forEach((el,i)=>el.addEventListener('click',()=>show(i)));
- document.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft'].includes(e.key))return;if(document.activeElement.closest?.('.gallery')||document.activeElement===document.body){e.preventDefault();show(index+(e.key==='ArrowRight'?1:-1))}});
- let touchX=null;
- stage.addEventListener('touchstart',e=>{touchX=e.changedTouches[0].clientX},{passive:true});
- stage.addEventListener('touchend',e=>{if(touchX===null)return;const delta=e.changedTouches[0].clientX-touchX;touchX=null;if(Math.abs(delta)>45)show(index+(delta<0?1:-1))},{passive:true});
+ document.getElementById('galleryPrev').addEventListener('click',()=>show(current-1));
+ document.getElementById('galleryNext').addEventListener('click',()=>show(current+1));
+ dots.forEach((dot,i)=>dot.addEventListener('click',()=>show(i)));
+ stage.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();show(current+(e.key==='ArrowRight'?1:-1))}});
+ stage.addEventListener('touchstart',e=>{startX=e.changedTouches[0].clientX},{passive:true});
+ stage.addEventListener('touchend',e=>{if(startX===null)return;const delta=e.changedTouches[0].clientX-startX;startX=null;if(Math.abs(delta)>45)show(current+(delta<0?1:-1))},{passive:true});
 })();
-
