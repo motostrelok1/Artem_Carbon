@@ -105,3 +105,17 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 .music-icon{font-size:19px;color:var(--red);line-height:1}
 @media(max-width:900px){.music-toggle{margin-left:auto;margin-right:12px;padding:8px 10px;font-size:10px}}
 @media(max-width:550px){.music-toggle #musicLabel{display:none}.music-toggle{min-width:38px;height:38px;margin-right:8px}}
+
+.music-prompt[hidden]{display:none!important}
+.music-prompt{
+ position:fixed;z-index:80;bottom:22px;right:22px;
+ display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+ max-width:min(460px,calc(100vw - 32px));padding:14px 16px;
+ border:1px solid rgba(242,37,50,.7);border-radius:10px;
+ color:#fff;background:rgba(12,12,16,.96);
+ box-shadow:0 12px 42px rgba(0,0,0,.48);font-size:13px;
+}
+.music-prompt button{border:0;color:#fff;cursor:pointer;font-weight:800}
+#musicStart{padding:9px 12px;background:var(--red);border-radius:6px}
+#musicDismiss{padding:6px;background:transparent}
+@media(max-width:550px){.music-prompt{left:16px;right:16px;bottom:16px}}
