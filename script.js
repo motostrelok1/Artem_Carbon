@@ -63,3 +63,27 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
  // Script runs at end of body: make the first attempt immediately, not after all assets load.
  void startMusic();
 })();
+
+/* Inline project carousel */
+
+(()=>{
+ const slides=[...document.querySelectorAll('.gallery-slide')];
+ const thumbs=[...document.querySelectorAll('.gallery-thumb')];
+ const count=document.getElementById('galleryCount');
+ const stage=document.getElementById('galleryStage');
+ let index=0;
+ function show(n){
+  index=(n+slides.length)%slides.length;
+  slides.forEach((el,i)=>el.classList.toggle('active',i===index));
+  thumbs.forEach((el,i)=>{el.classList.toggle('active',i===index);if(i===index)el.setAttribute('aria-current','true');else el.removeAttribute('aria-current')});
+  count.textContent=String(index+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+ }
+ document.getElementById('galleryPrev').addEventListener('click',()=>show(index-1));
+ document.getElementById('galleryNext').addEventListener('click',()=>show(index+1));
+ thumbs.forEach((el,i)=>el.addEventListener('click',()=>show(i)));
+ document.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft'].includes(e.key))return;if(document.activeElement.closest?.('.gallery')||document.activeElement===document.body){e.preventDefault();show(index+(e.key==='ArrowRight'?1:-1))}});
+ let touchX=null;
+ stage.addEventListener('touchstart',e=>{touchX=e.changedTouches[0].clientX},{passive:true});
+ stage.addEventListener('touchend',e=>{if(touchX===null)return;const delta=e.changedTouches[0].clientX-touchX;touchX=null;if(Math.abs(delta)>45)show(index+(delta<0?1:-1))},{passive:true});
+})();
+
