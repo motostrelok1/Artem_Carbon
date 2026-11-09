@@ -181,3 +181,43 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 .socials .social-link:hover,.socials .social-link:focus-visible{border-color:var(--red);background:rgba(242,37,50,.16)}
 .socials .social-link:focus-visible{outline:2px solid #fff;outline-offset:3px}
 @media(max-width:550px){.socials .social-link{flex:1 1 130px}}
+
+/* About anchor: remove oversized top gap and keep the full carousel visible in a desktop viewport. */
+#about{
+ scroll-margin-top:0;
+ padding-top:18px;
+ padding-bottom:24px;
+}
+#about>.eyebrow{margin-bottom:5px}
+#about>h2{font-size:clamp(36px,4vw,62px);line-height:1.04;margin:5px 0 8px}
+#about>p:not(.eyebrow){max-width:740px;margin:0 auto 10px;font-size:14px;line-height:1.45}
+#about .gallery{margin:14px auto 12px}
+#about .gallery-stage,
+#about .project-photo{
+ aspect-ratio:auto;
+ height:clamp(240px,42svh,560px);
+ max-height:calc(100svh - 330px);
+}
+#about .gallery-meta{padding:8px 4px 4px}
+#about .gallery-dots{margin:7px 0}
+#about .gallery-footnote{margin:8px auto 12px!important;font-size:12px}
+#about .socials{margin-top:10px;gap:10px}
+@media(max-width:900px){
+ #about{padding-top:18px;padding-bottom:24px}
+ #about .gallery-stage,#about .project-photo{
+  height:clamp(220px,40svh,460px);
+  max-height:none;
+ }
+}
+@media(max-width:550px){
+ #about{padding-top:20px;padding-bottom:36px}
+ #about>h2{font-size:42px}
+ #about .gallery-stage,#about .project-photo{
+  aspect-ratio:4/3;
+  height:auto;
+  min-height:0;
+ }
+ #about .gallery{margin:17px auto 16px}
+ #about .gallery-footnote{margin:12px auto!important}
+ #about .socials{margin-top:20px}
+}
