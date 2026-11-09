@@ -1,46 +1,65 @@
 const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';function render(){document.getElementById('quantity').textContent=qty;document.getElementById('total').textContent=fmt(qty*2000)}document.getElementById('buyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('minus').addEventListener('click',()=>{qty=Math.max(1,qty-1);render()});document.getElementById('plus').addEventListener('click',()=>{qty=Math.min(100,qty+1);render()});document.getElementById('demoButton').addEventListener('click',()=>document.getElementById('demoMessage').textContent='Демонстрация: реальный заказ и оплата станут доступны после подключения сервера и эквайринга.');const menu=document.getElementById('mobileNav');document.getElementById('mobileMenu').addEventListener('click',()=>menu.classList.toggle('open'));menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
-/* Background music: attempt on load, then unlock on user gesture when autoplay is blocked. */
+/* Play ASAP where permitted; explicit gesture fallback for browser autoplay policy. */
 (()=>{
  const audio=document.getElementById('siteMusic');
  const toggle=document.getElementById('musicToggle');
  const label=document.getElementById('musicLabel');
- if(!audio||!toggle||!label)return;
+ const prompt=document.getElementById('musicPrompt');
+ const start=document.getElementById('musicStart');
+ const dismiss=document.getElementById('musicDismiss');
+ if(!audio||!toggle||!label||!prompt||!start||!dismiss)return;
  audio.volume=0.32;
- let explicitlyOff=false;
+ let userDisabled=false;
  let pending=false;
- const sync=()=>{
-   const playing=!audio.paused;
-   label.textContent=playing?'МУЗЫКА: ВКЛ.':'МУЗЫКА: ВЫКЛ.';
-   toggle.setAttribute('aria-pressed',String(playing));
-   toggle.setAttribute('aria-label',playing?'Выключить музыку':'Включить музыку');
-   toggle.title=playing?'Выключить музыку':'Включить музыку';
- };
- const play=async()=>{
-   if(explicitlyOff||pending||!audio.paused)return;
-   pending=true;
-   try{await audio.play();}catch(error){
-      if(error.name!=='NotAllowedError'&&error.name!=='AbortError'){
-        toggle.title='Аудиофайл не загружен. Добавьте site-theme.mp3 в корень репозитория.';
-      }
-   }finally{pending=false;sync()}
- };
+ let dismissed=false;
+ function sync(){
+  const playing=!audio.paused;
+  label.textContent=playing?'МУЗЫКА: ВКЛ.':'МУЗЫКА: ВЫКЛ.';
+  toggle.setAttribute('aria-pressed',String(playing));
+  toggle.setAttribute('aria-label',playing?'Выключить музыку':'Включить музыку');
+  toggle.title=playing?'Выключить музыку':'Включить музыку';
+  prompt.hidden=playing||userDisabled||dismissed;
+ }
+ async function startMusic(){
+  if(userDisabled||pending||!audio.paused)return;
+  pending=true;
+  try{
+   await audio.play();
+  }catch(err){
+   if(err?.name!=='NotAllowedError'&&err?.name!=='AbortError'){
+    prompt.querySelector('span').textContent='Музыка недоступна: проверьте аудиофайл.';
+   }
+  }finally{pending=false;sync()}
+ }
+ function userStart(){
+  userDisabled=false;dismissed=false;
+  void startMusic();
+ }
  toggle.addEventListener('click',()=>{
-   if(audio.paused){explicitlyOff=false;void play();}
-   else{explicitlyOff=true;audio.pause();sync();}
+  if(audio.paused){userStart()}
+  else{userDisabled=true;audio.pause();sync()}
+ });
+ start.addEventListener('click',userStart);
+ dismiss.addEventListener('click',()=>{
+  dismissed=true;sync();
  });
  audio.addEventListener('play',sync);
  audio.addEventListener('pause',sync);
  audio.addEventListener('error',()=>{
-   toggle.title='Аудиофайл не найден. Загрузите site-theme.mp3 в корень репозитория.';
-   sync();
+  prompt.querySelector('span').textContent='Музыка недоступна: проверьте аудиофайл.';
+  sync();
  });
- const unlock=event=>{
-   if(event.target.closest?.('#musicToggle'))return;
-   if(explicitlyOff||!audio.paused)return;
-   void play();
- };
+ function unlock(e){
+  if(e.target?.closest?.('#musicToggle, #musicDismiss, #musicStart'))return;
+  if(!userDisabled&&audio.paused)void startMusic();
+ }
  document.addEventListener('pointerdown',unlock,{passive:true});
  document.addEventListener('keydown',unlock);
- window.addEventListener('load',()=>{void play()},{once:true});
+ window.addEventListener('pageshow',()=>{void startMusic()});
+ document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&!userDisabled)void startMusic();
+ });
  sync();
+ // Script runs at end of body: make the first attempt immediately, not after all assets load.
+ void startMusic();
 })();
