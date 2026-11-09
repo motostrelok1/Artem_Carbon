@@ -71,7 +71,7 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
  const count=document.getElementById('galleryCount');
  const dots=[...document.querySelectorAll('.gallery-dot')];
  if(!stage||!photo||!count)return;
- const photos=['./1.jpg','./2.jpg','./3.jpg'];
+ const photos=['./1.jpg','./2.jpg','./3.jpg','./hero-car.jpg'];
  let current=0, startX=null;
  photos.slice(1).forEach(src=>{const img=new Image();img.src=src});
  function show(next){
