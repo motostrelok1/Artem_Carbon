@@ -572,3 +572,10 @@ main{padding-top:var(--site-header-height)}
   object-fit:contain;
  }
 }
+
+/* Additional header lesson anchor and checkout action. */
+.header .nav-action{border:0;color:#fff;white-space:nowrap;cursor:pointer}
+.header nav{gap:clamp(12px,1.6vw,30px)}
+.header nav a{white-space:nowrap}
+.mobile-nav .mobile-purchase{display:block;text-align:center;background:var(--red);border:0;color:white;padding:13px 17px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.5px}
+@media(min-width:901px) and (max-width:1250px){.header nav{font-size:11px;letter-spacing:.3px}.header .nav-action{font-size:11px;letter-spacing:.3px}.header .logo{font-size:23px}}
