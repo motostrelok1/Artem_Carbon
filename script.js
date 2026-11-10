@@ -187,3 +187,68 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
   if(Math.abs(dx)>45)switchPhoto(activeProduct,dx<0?1:-1);
  },{passive:true});
 })();
+
+/* Product purchase preview: photo carousel, details, quantity and total. */
+(()=>{
+ const catalog={
+  helmet:{name:'КАСКА КАРБОНОВАЯ',price:35000,photos:['каска_1.jpg','каска_2.jpg','каска_3.jpg']},
+  spoon:{name:'ЛОЖКА КАРБОНОВАЯ',price:25000,photos:['ложка_4.jpg','ложка_5.jpg','ложка_6.jpg']},
+  knife:{name:'НОЖ КАРБОНОВЫЙ',price:10000,photos:['нож_7.jpg','нож_8.jpg','нож_9.jpg']}
+ };
+ const dialog=document.getElementById('productCheckout');
+ const $=id=>document.getElementById(id);
+ const image=$('productCheckoutPhoto');
+ const expanded=$('productLightbox');
+ let current=null,number=0,quantity=1;
+ const fmtPrice=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';
+ function render(){
+  if(!current)return;
+  const item=catalog[current];
+  image.src='./'+encodeURIComponent(item.photos[number]);
+  image.alt=item.name+', фото '+(number+1)+' из '+item.photos.length;
+  $('productCheckoutCount').textContent=String(number+1).padStart(2,'0')+' / '+String(item.photos.length).padStart(2,'0');
+  $('productCheckoutName').textContent=item.name;
+  $('productCheckoutUnitPrice').textContent=fmtPrice(item.price);
+  $('productCheckoutQuantity').textContent=quantity;
+  $('productCheckoutTotal').textContent=fmtPrice(item.price*quantity);
+ }
+ function next(delta){
+  if(!current)return;
+  number=(number+delta+catalog[current].photos.length)%catalog[current].photos.length;render();
+ }
+ document.querySelectorAll('.product-card[data-product] .product-buy-button').forEach(button=>{
+  button.addEventListener('click',()=>{
+   current=button.closest('[data-product]').dataset.product;
+   number=0;quantity=1;
+   $('productCheckoutMessage').textContent='';
+   render();dialog.showModal();
+  });
+ });
+ $('productCheckoutPrev').addEventListener('click',()=>next(-1));
+ $('productCheckoutNext').addEventListener('click',()=>next(1));
+ $('productCheckoutMinus').addEventListener('click',()=>{quantity=Math.max(1,quantity-1);render()});
+ $('productCheckoutPlus').addEventListener('click',()=>{quantity=Math.min(100,quantity+1);render()});
+ $('productCheckoutClose').addEventListener('click',()=>dialog.close());
+ dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});
+ $('productCheckoutContinue').addEventListener('click',()=>{$('productCheckoutMessage').textContent='Оплата пока не подключена. Заказ не создан.'});
+ $('productCheckoutExpand').addEventListener('click',()=>{
+  if(!current)return;
+  dialog.close();
+  const card=document.querySelector('.product-card[data-product="'+current+'"]');
+  if(!card)return;
+  // Fullscreen gallery opens on the same image as the purchase preview.
+  const statePhoto=card.querySelector('.product-gallery-photo');
+  const all=catalog[current].photos;
+  const desired='./'+encodeURIComponent(all[number]);
+  let index=0;
+  while(index<all.length&&new URL(statePhoto.src,location.href).pathname!==new URL(desired,location.href).pathname){
+   card.querySelector('.product-gallery-next').click();
+   index++;
+  }
+  card.querySelector('.product-gallery-expand').click();
+ });
+ let touchX=null;
+ const region=dialog.querySelector('.product-checkout-photo-wrap');
+ region.addEventListener('touchstart',e=>{touchX=e.changedTouches[0].clientX},{passive:true});
+ region.addEventListener('touchend',e=>{if(touchX===null)return;const dx=e.changedTouches[0].clientX-touchX;touchX=null;if(Math.abs(dx)>40)next(dx<0?1:-1)},{passive:true});
+})();
