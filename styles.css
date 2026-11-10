@@ -472,3 +472,54 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 #shop .product-details h3{font-size:clamp(17px,1.5vw,25px)}
 @media(max-width:900px){#shop .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:550px){#shop .product-grid{grid-template-columns:1fr}#shop .product-image{height:220px}}
+
+/* Persistent site navigation and consistent anchor offsets. */
+:root{--site-header-height:78px}
+.header{
+ position:fixed;
+ top:0;left:0;right:0;
+ width:100%;
+ height:var(--site-header-height);
+ z-index:100;
+ background:rgba(9,10,12,.93);
+ backdrop-filter:blur(14px);
+ -webkit-backdrop-filter:blur(14px);
+}
+main{padding-top:var(--site-header-height)}
+/* Scroll offset is applied through scroll-margin on the target sections. */
+#home,#learning,#lesson-details,#shop,#about{
+ scroll-margin-top:var(--site-header-height);
+}
+.lesson-hero{
+ height:calc(100svh - var(--site-header-height));
+ min-height:650px;
+}
+.lesson-first-wrap{
+ height:100%;
+ padding-top:35px;
+ padding-bottom:50px;
+}
+#lesson-details,#shop{
+ min-height:calc(100svh - var(--site-header-height));
+}
+#about{
+ padding-top:18px;
+}
+/* Keep mobile navigation attached to the header, not to the document scroll. */
+@media(max-width:900px){
+ :root{--site-header-height:68px}
+ .header{height:var(--site-header-height)}
+ .mobile-nav{
+  position:fixed;
+  top:var(--site-header-height);
+  z-index:99;
+  left:0;right:0;
+ }
+ .lesson-hero{height:auto;min-height:calc(100svh - var(--site-header-height))}
+ .lesson-first-wrap{min-height:calc(100svh - var(--site-header-height));height:auto;padding-top:35px;padding-bottom:50px}
+ #lesson-details,#shop{min-height:0}
+}
+@media(max-width:550px){
+ .lesson-hero{min-height:calc(100svh - var(--site-header-height))}
+ .lesson-first-wrap{min-height:calc(100svh - var(--site-header-height));padding-top:40px;padding-bottom:45px}
+}
