@@ -486,7 +486,7 @@ footer{position:relative;background:rgba(7,7,9,.96)}
  -webkit-backdrop-filter:blur(14px);
 }
 main{padding-top:var(--site-header-height)}
-html{scroll-padding-top:var(--site-header-height)}
+/* Scroll offset is applied through scroll-margin on the target sections. */
 #home,#learning,#lesson-details,#shop,#about{
  scroll-margin-top:var(--site-header-height);
 }
