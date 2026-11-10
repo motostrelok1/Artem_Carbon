@@ -623,3 +623,65 @@ main{padding-top:var(--site-header-height)}
  .product-lightbox-close{right:9px;top:9px}
  .product-lightbox-caption{bottom:12px;font-size:11px}
 }
+
+/* Fixed navigation: translucent over the photograph while remaining readable. */
+.header{
+ background:rgba(9,10,12,.40);
+ backdrop-filter:blur(8px);
+ -webkit-backdrop-filter:blur(8px);
+ border-bottom:1px solid rgba(255,255,255,.22);
+}
+/* Product photo cards: bright, fully filled previews. Original image stays uncropped in fullscreen. */
+#shop .product-gallery{
+ background:rgba(18,19,22,.35);
+ isolation:isolate;
+}
+#shop .product-gallery-photo{
+ width:100%;
+ height:100%;
+ object-fit:cover;
+ object-position:center;
+ filter:brightness(1.22) contrast(1.07);
+ opacity:1;
+ z-index:0;
+ cursor:zoom-in;
+ transition:filter .2s ease;
+}
+#shop .product-gallery-photo:hover{filter:brightness(1.36) contrast(1.06)}
+#shop .product-gallery-arrow,
+#shop .product-gallery-expand{
+ z-index:5;
+ border:1px solid rgba(255,255,255,.9);
+ background:rgba(8,9,12,.88);
+ color:#fff;
+ opacity:1;
+ box-shadow:0 2px 14px rgba(0,0,0,.42);
+}
+#shop .product-gallery-arrow{width:44px;height:55px;font-size:34px}
+#shop .product-gallery-expand{width:42px;height:42px;font-size:26px}
+#shop .product-gallery-arrow:hover,
+#shop .product-gallery-expand:hover,
+#shop .product-gallery-arrow:focus-visible,
+#shop .product-gallery-expand:focus-visible{
+ background:var(--red);
+ border-color:var(--red);
+ outline:2px solid #fff;
+ outline-offset:1px;
+}
+#shop .product-gallery-count{
+ z-index:4;
+ left:auto;
+ right:10px;
+ top:auto;
+ bottom:10px;
+ padding:5px 10px;
+ border:1px solid rgba(255,255,255,.5);
+ background:rgba(7,7,9,.86);
+ color:white;
+}
+#shop .product-gallery-count:first-of-type{left:auto;top:auto}
+.product-lightbox img{filter:none;object-fit:contain}
+@media(max-width:550px){
+ #shop .product-gallery-arrow{width:36px;height:46px;font-size:27px}
+ #shop .product-gallery-expand{width:36px;height:36px;font-size:22px}
+}
