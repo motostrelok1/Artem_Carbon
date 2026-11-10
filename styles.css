@@ -451,3 +451,14 @@ footer{position:relative;background:rgba(7,7,9,.96)}
 @media(max-width:1250px){.header{gap:12px}.header nav{gap:15px}.header .header-socials{gap:5px}.header .header-social-link{width:34px;height:34px}.header .nav-action{padding:12px 13px}}
 @media(max-width:900px){.header .header-socials{margin-left:auto}.header .music-toggle{margin-left:0}.header .header-social-link{width:34px;height:34px}}
 @media(max-width:550px){.header{gap:4px}.header .logo{font-size:clamp(16px,5vw,22px)}.header .header-socials{gap:4px;margin-left:auto}.header .header-social-link{width:29px;height:32px}.header .header-social-link svg{width:17px;height:17px}.header .header-social-link:last-child svg{width:23px}.header .music-toggle{margin-right:4px;min-width:33px;width:33px;height:33px}.header .menu-btn{padding:2px}}
+
+/* Checkout detail: scrollable dialog, clear terms before quantity and total. */
+.checkout{width:min(660px,calc(100% - 28px));max-height:calc(100dvh - 36px);overflow-y:auto;overscroll-behavior:contain;padding:clamp(18px,3vw,38px)}
+.checkout-terms{padding:16px 0 4px;border-top:1px solid #36363c}
+.checkout-terms p{font-size:14px;line-height:1.55;margin:0 0 12px;color:#e9e9ed}
+.checkout-terms strong{color:#fff}
+.checkout-terms a{color:#ff6b73;text-decoration:underline;text-underline-offset:3px}
+.checkout-legal-note{font-size:12px;line-height:1.5;color:#c2c2ca;margin:4px 0 17px}
+.checkout .qty-row{padding:16px 0}
+.checkout .total-row{padding:16px 0}
+@media(max-width:550px){.checkout{max-height:calc(100dvh - 16px);width:calc(100% - 16px)}.checkout-terms p{font-size:13px}}
