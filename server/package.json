@@ -2,5 +2,5 @@
  "name":"artems-carbon-api","private":true,"version":"0.1.0","type":"module",
  "scripts":{"start":"node src/app.js","test":"node --test test/*.test.js","mail:once":"node src/mail-worker.js --once","mail:verify":"node src/mail-worker.js --verify"},
  "engines":{"node":">=22"},
- "dependencies":{"express":"^4.21.2","pg":"^8.16.3","nodemailer":"^6.10.1"}
+ "dependencies":{"express":"^4.21.2","pg":"^8.16.3","nodemailer":"^10.5.0"}
 }
