@@ -1,0 +1,6 @@
+{
+ "name":"artems-carbon-api","private":true,"version":"0.1.0","type":"module",
+ "scripts":{"start":"node src/app.js","test":"node --test test/*.test.js"},
+ "engines":{"node":">=22"},
+ "dependencies":{"express":"^4.21.2","pg":"^8.16.3"}
+}
