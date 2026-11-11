@@ -252,3 +252,41 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
  region.addEventListener('touchstart',e=>{touchX=e.changedTouches[0].clientX},{passive:true});
  region.addEventListener('touchend',e=>{if(touchX===null)return;const dx=e.changedTouches[0].clientX-touchX;touchX=null;if(Math.abs(dx)>40)next(dx<0?1:-1)},{passive:true});
 })();
+
+/* Public confirmed lesson sales, read-only. No hardcoded fake sales. */
+(()=>{
+ const total=9500;
+ const sold=document.getElementById('soldLessons');
+ const progress=document.getElementById('lessonSalesProgress');
+ const fill=document.getElementById('lessonSalesFill');
+ const caption=document.getElementById('lessonSalesCaption');
+ const base=document.querySelector('meta[name="artems-api-base"]')?.content?.trim();
+ if(!sold||!progress||!fill||!caption)return;
+ function unavailable(){
+  sold.textContent='—';fill.style.width='0%';
+  progress.removeAttribute('aria-valuenow');
+  progress.setAttribute('aria-valuetext','Нет подтверждённых данных');
+  caption.textContent='Данные появятся после подключения оплаты';
+ }
+ unavailable();
+ if(!base)return;
+ async function refresh(){
+  try{
+   const url=new URL('/api/public/stats',base);
+   const res=await fetch(url.toString(),{headers:{Accept:'application/json'},cache:'no-store'});
+   if(!res.ok)throw new Error('Statistics unavailable');
+   const stats=await res.json();
+   const n=stats?.soldLessons;
+   if(typeof n!=='number'||!Number.isSafeInteger(n)||n<0)throw new Error('Invalid sales counter');
+   const count=Math.min(total,n);
+   sold.textContent=new Intl.NumberFormat('ru-RU').format(count);
+   const percent=100*count/total;
+   fill.style.width=percent.toFixed(2)+'%';
+   progress.setAttribute('aria-valuenow',String(count));
+   progress.setAttribute('aria-valuetext','Продано '+count+' из '+total);
+   caption.textContent='Осталось '+new Intl.NumberFormat('ru-RU').format(total-count)+' видеоуроков';
+  }catch(error){unavailable();}
+ }
+ refresh();
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+})();
