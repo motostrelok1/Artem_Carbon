@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS email_outbox (
  id BIGSERIAL PRIMARY KEY,
  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
  kind TEXT NOT NULL CHECK (kind IN ('order_confirmation')),
- state TEXT NOT NULL DEFAULT 'queued' CHECK (state IN ('queued','sending','sent','failed')),
+ state TEXT NOT NULL DEFAULT 'queued' CHECK (state IN ('queued','sending','sent','failed','cancelled')),
  attempts INTEGER NOT NULL DEFAULT 0,
  next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  locked_at TIMESTAMPTZ,
