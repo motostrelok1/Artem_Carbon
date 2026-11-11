@@ -722,3 +722,14 @@ main{padding-top:var(--site-header-height)}
 .product-checkout-notice{font-size:12px;color:#aaa}
 #productCheckoutMessage{font-size:13px;color:#ffbf8c}
 @media(max-width:700px){.product-checkout-grid{grid-template-columns:1fr}.product-checkout-photo-wrap{height:clamp(200px,40svh,350px)}}
+
+/* Public lesson-sales meter: visible without disclosing payments or customer details. */
+.lesson-sales-meter{width:min(100%,580px);margin:18px 0 4px;display:grid;gap:7px}
+.lesson-sales-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.lesson-sales-head>span{font-size:11px;font-weight:900;letter-spacing:1.4px;color:#e5e5e8}
+.lesson-sales-head strong{font-size:clamp(19px,2vw,27px);white-space:nowrap;color:#fff}
+.lesson-sales-head strong span{font-size:15px;color:#c4c4cb}
+.lesson-sales-track{height:10px;border:1px solid #ffffff55;background:rgba(3,4,8,.60);overflow:hidden;border-radius:10px}
+.lesson-sales-fill{width:0;height:100%;background:var(--red);transition:width .4s}
+.lesson-sales-caption{font-size:12px;color:#d0d0d5}
+@media(max-width:550px){.lesson-sales-meter{margin-top:12px}.lesson-sales-head>span{font-size:10px;letter-spacing:.7px}}
