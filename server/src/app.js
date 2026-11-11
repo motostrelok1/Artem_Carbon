@@ -83,6 +83,15 @@ app.post('/api/admin/logout',(req,res)=>{
  res.setHeader('Set-Cookie','artems_admin=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0');
  res.json({ok:true});
 });
+app.get('/api/admin/email-status',adminAuth,async(req,res)=>{
+ try{
+  const r=await pool.query(`SELECT e.id,o.id::text AS order_id,e.state,e.attempts,
+   e.sent_at,e.next_attempt_at,e.created_at
+   FROM email_outbox e JOIN orders o ON o.id=e.order_id
+   ORDER BY e.created_at DESC LIMIT 100`);
+  res.setHeader('Cache-Control','no-store');res.json({items:r.rows});
+ }catch(err){console.error('email status unavailable',err);reject(res,503,'Email status unavailable')}
+});
 app.get('/api/admin/analytics',adminAuth,async(req,res)=>{
  let interval;try{interval=formatPeriod(req.query.period||'month')}catch{return reject(res,400,'Invalid period')}
  const since=interval?new Date(Date.now()-({day:1,week:7,month:30}[req.query.period||'month'])*86400000):null;
@@ -160,6 +169,7 @@ app.post('/api/payments/tbank/notification',async(req,res)=>{
   await client.query('INSERT INTO payment_events(provider_payment_id,status,order_id,payload) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[paymentId,String(event.Status),orderId,event]);
   if(event.Success===true&&event.Status==='CONFIRMED'&&r.rows[0].status==='pending'){
    await client.query("UPDATE orders SET status='paid',paid_at=NOW() WHERE id=$1",[orderId]);
+   await client.query("INSERT INTO email_outbox(order_id,kind) VALUES($1,'order_confirmation') ON CONFLICT (order_id,kind) DO NOTHING",[orderId]);
   }
   // A full REFUNDED is removed from active paid sales; partial refunds require
   // a dedicated item-level reconciliation workflow before live launch.

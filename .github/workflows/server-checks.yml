@@ -24,4 +24,6 @@ jobs:
       - run: node --check src/app.js
       - run: node --check src/tbank.js
       - run: node --check src/catalog.js
+      - run: node --check src/mail-worker.js
+      - run: node --check src/email-template.js
       - run: npm test
