@@ -1,4 +1,23 @@
-const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';function render(){document.getElementById('quantity').textContent=qty;document.getElementById('total').textContent=fmt(qty*2000)}document.getElementById('buyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('buyCourseDetails').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('headerBuyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('mobileBuyCourse').addEventListener('click',()=>{menu.classList.remove('open');qty=1;render();dlg.showModal()});document.getElementById('minus').addEventListener('click',()=>{qty=Math.max(1,qty-1);render()});document.getElementById('plus').addEventListener('click',()=>{qty=Math.min(100,qty+1);render()});document.getElementById('demoButton').addEventListener('click',()=>document.getElementById('demoMessage').textContent='Демонстрация: реальный заказ и оплата станут доступны после подключения сервера и эквайринга.');const menu=document.getElementById('mobileNav');document.getElementById('mobileMenu').addEventListener('click',()=>menu.classList.toggle('open'));menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
+const ARTEMS_API=document.querySelector('meta[name="artems-api-base"]')?.content?.trim()||'';
+async function createPayment(sku,quantity,email){
+ if(!ARTEMS_API)throw new Error('Оплата пока не подключена');
+ const endpoint=new URL('/api/orders',ARTEMS_API);
+ const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({items:[{sku,quantity}],email})});
+ if(!res.ok)throw new Error(res.status===503?'Платежи пока недоступны':'Не удалось создать заказ');
+ const data=await res.json();
+ const url=new URL(data.paymentUrl);
+ if(url.protocol!=='https:')throw new Error('Некорректная ссылка банка');
+ window.location.assign(url.href);
+}
+const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';function render(){document.getElementById('quantity').textContent=qty;document.getElementById('total').textContent=fmt(qty*2000)}document.getElementById('buyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('buyCourseDetails').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('headerBuyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('mobileBuyCourse').addEventListener('click',()=>{menu.classList.remove('open');qty=1;render();dlg.showModal()});document.getElementById('minus').addEventListener('click',()=>{qty=Math.max(1,qty-1);render()});document.getElementById('plus').addEventListener('click',()=>{qty=Math.min(100,qty+1);render()});document.getElementById('demoButton').addEventListener('click',async()=>{
+ const message=document.getElementById('demoMessage');
+ const email=document.getElementById('courseBuyerEmail');
+ if(!ARTEMS_API){message.textContent='Демонстрация: оплата появится после подключения сервера и банка.';return;}
+ if(!email.reportValidity()||!email.value.trim()){email.focus();email.setCustomValidity('Укажите email');email.reportValidity();email.setCustomValidity('');return;}
+ try{message.textContent='Создаём заказ…';await createPayment('video_lesson',qty,email.value.trim())}
+ catch(error){message.textContent=error.message}
+});const menu=document.getElementById('mobileNav');document.getElementById('mobileMenu').addEventListener('click',()=>menu.classList.toggle('open'));menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
 /* Play ASAP where permitted; explicit gesture fallback for browser autoplay policy. */
 (()=>{
  const audio=document.getElementById('siteMusic');
@@ -230,7 +249,14 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
  $('productCheckoutPlus').addEventListener('click',()=>{quantity=Math.min(100,quantity+1);render()});
  $('productCheckoutClose').addEventListener('click',()=>dialog.close());
  dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});
- $('productCheckoutContinue').addEventListener('click',()=>{$('productCheckoutMessage').textContent='Оплата пока не подключена. Заказ не создан.'});
+ $('productCheckoutContinue').addEventListener('click',async()=>{
+ const message=$('productCheckoutMessage');const input=$('productBuyerEmail');
+ if(!ARTEMS_API){message.textContent='Оплата пока не подключена. Заказ не создан.';return;}
+ if(!input.value.trim()||!input.reportValidity()){input.focus();message.textContent='Укажите email';return;}
+ const skus={helmet:'carbon_helmet',spoon:'carbon_spoon',knife:'carbon_knife'};
+ try{message.textContent='Создаём заказ…';await createPayment(skus[current],quantity,input.value.trim())}
+ catch(error){message.textContent=error.message}
+});
  $('productCheckoutExpand').addEventListener('click',()=>{
   if(!current)return;
   dialog.close();
