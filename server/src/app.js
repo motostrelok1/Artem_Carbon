@@ -4,6 +4,7 @@ import {randomUUID,createHmac,scryptSync,timingSafeEqual} from 'node:crypto';
 import {catalog,validateCart} from './catalog.js';
 import {validateCourseBuyer} from './buyer-validation.js';
 import {buildInit,initPayment,validToken} from './tbank.js';
+import {assignLessonNumbers,voidLessonNumbers} from './lesson-numbers.js';
 
 const app=express();
 app.disable('x-powered-by');
@@ -177,6 +178,9 @@ app.post('/api/payments/tbank/notification',async(req,res)=>{
   }
   await client.query('INSERT INTO payment_events(provider_payment_id,status,order_id,payload) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[paymentId,String(event.Status),orderId,event]);
   if(event.Success===true&&event.Status==='CONFIRMED'&&r.rows[0].status==='pending'){
+   // The bank has captured payment; allocate unique numbers before recording it paid.
+   const lessons=await client.query("SELECT COALESCE(SUM(quantity),0)::integer AS quantity FROM order_items WHERE order_id=$1 AND sku='video_lesson'",[orderId]);
+   if(lessons.rows[0].quantity>0)await assignLessonNumbers(client,orderId,lessons.rows[0].quantity);
    await client.query("UPDATE orders SET status='paid',paid_at=NOW() WHERE id=$1",[orderId]);
    await client.query("INSERT INTO email_outbox(order_id,kind) VALUES($1,'order_confirmation') ON CONFLICT (order_id,kind) DO NOTHING",[orderId]);
   }
@@ -184,6 +188,7 @@ app.post('/api/payments/tbank/notification',async(req,res)=>{
   // a dedicated item-level reconciliation workflow before live launch.
   if(event.Success===true&&event.Status==='REFUNDED'&&r.rows[0].status==='paid'){
    await client.query("UPDATE orders SET status='refunded',refunded_at=NOW() WHERE id=$1",[orderId]);
+   await voidLessonNumbers(client,orderId);
   }
   await client.query('COMMIT');
   res.type('text/plain').send('OK');

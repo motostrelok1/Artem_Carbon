@@ -1,3 +1,4 @@
+import {existsSync} from 'node:fs';
 import pg from 'pg';
 import nodemailer from 'nodemailer';
 import {purchaseMessage} from './email-template.js';
@@ -36,8 +37,19 @@ async function processOne(){
    await pool.query("UPDATE email_outbox SET state='cancelled',last_error='Order not paid' WHERE id=$1",[job.id]);return true;
   }
   const details=await pool.query('SELECT sku,quantity,unit_price_kopecks FROM order_items WHERE order_id=$1',[job.order_id]);
+  const hasLessons=details.rows.some(x=>x.sku==='video_lesson');
+  const serials=hasLessons?await pool.query(
+   'SELECT number FROM lesson_number_pool WHERE order_id=$1 AND voided_at IS NULL ORDER BY number',
+   [job.order_id]):{rows:[]};
+  const photoPath=new URL('../../5.jpeg',import.meta.url);
+  const hasLessonPhoto=hasLessons&&existsSync(photoPath);
   const message=purchaseMessage({...r.rows[0],amount_kopecks:Number(r.rows[0].amount_kopecks),
-   items:details.rows.map(x=>({...x,unit_price_kopecks:Number(x.unit_price_kopecks)}))});
+   items:details.rows.map(x=>({...x,unit_price_kopecks:Number(x.unit_price_kopecks)})),
+   lessonNumbers:serials.rows.map(x=>x.number),hasLessonPhoto});
+  if(hasLessonPhoto)message.attachments=[{
+   filename:'5.jpeg',path:photoPath.pathname,cid:'artems-lesson-photo',
+   contentType:'image/jpeg',contentDisposition:'inline'
+  }];
   // Stable Message-ID: retry-safe for clients that deduplicate, but not a
   // guarantee against duplicate delivery after a worker crash.
   message.messageId='<ac-'+job.order_id+'@'+config.from.split('@').at(-1)+'>';
