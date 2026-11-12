@@ -69,7 +69,7 @@ function adminAuth(req,res,next){
 }
 const attempts=new Map();
 app.post('/api/admin/login',(req,res)=>{
- if(req.headers.origin!==origin)return reject(res,403,'Forbidden origin');
+ if(req.headers.origin!==serverOrigin)return reject(res,403,'Forbidden origin');
  const ip=req.ip||'unknown';const now=Date.now();
  const state=attempts.get(ip)||{count:0,until:0};
  if(state.until>now)return reject(res,429,'Try later');
@@ -79,12 +79,69 @@ app.post('/api/admin/login',(req,res)=>{
  }
  attempts.delete(ip);
  const payload=Buffer.from(JSON.stringify({role:'admin',exp:now+8*60*60*1000})).toString('base64url');
- res.setHeader('Set-Cookie','artems_admin='+payload+'.'+sign(payload)+'; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=28800');
+ res.setHeader('Set-Cookie','artems_admin='+payload+'.'+sign(payload)+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=28800');
  res.json({authenticated:true});
 });
 app.post('/api/admin/logout',(req,res)=>{
- res.setHeader('Set-Cookie','artems_admin=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0');
+ if(req.headers.origin!==serverOrigin)return reject(res,403,'Forbidden origin');
+ res.setHeader('Set-Cookie','artems_admin=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0');
  res.json({ok:true});
+});
+// All customer details stay server-side and are available only after adminAuth.
+// Read-only dashboard: no client-side demo counters or simulated transactions.
+app.get('/api/admin/overview',adminAuth,async(req,res)=>{
+ try{
+  const r=await pool.query(`
+   SELECT (SELECT COUNT(*)::int FROM orders WHERE status='paid') AS paid_orders,
+          (SELECT COUNT(DISTINCT customer_id)::int FROM orders WHERE status='paid') AS customers,
+          (SELECT COALESCE(SUM(amount_kopecks),0)::bigint FROM orders WHERE status='paid') AS revenue_kopecks,
+          (SELECT COUNT(*)::int FROM orders WHERE status='pending') AS pending_orders,
+          (SELECT COUNT(*)::int FROM orders WHERE status='refunded') AS refunded_orders,
+          (SELECT sold_lessons FROM public_lesson_sales) AS sold_lessons,
+          (SELECT COUNT(*)::int FROM email_outbox WHERE state IN ('queued','sending','failed')) AS email_pending
+  `);
+  const x=r.rows[0];res.setHeader('Cache-Control','no-store');
+  res.json(Object.fromEntries(Object.entries(x).map(([k,v])=>[k,Number(v)])));
+ }catch(err){console.error('overview unavailable',err);reject(res,503,'Overview unavailable')}
+});
+app.get('/api/admin/orders',adminAuth,async(req,res)=>{
+ const status=String(req.query.status||'all');
+ if(!['all','pending','paid','cancelled','refunded'].includes(status))return reject(res,400,'Invalid status');
+ const page=Number(req.query.page||1);
+ if(!Number.isSafeInteger(page)||page<1||page>100000)return reject(res,400,'Invalid page');
+ const limit=30;
+ try{
+  const [total,result]=await Promise.all([
+   pool.query("SELECT COUNT(*)::int AS total FROM orders WHERE ($1::text='all' OR status=$1)",[status]),
+   pool.query(`
+    SELECT o.id::text AS order_id,o.status,o.created_at,o.paid_at,o.refunded_at,
+      o.amount_kopecks::text,o.provider_payment_id,c.email,
+      o.buyer_last_name,o.buyer_first_name,o.buyer_patronymic,
+      o.buyer_phone,o.buyer_instagram,
+      o.personal_data_consent_at,o.marketing_email_consent_at,o.consent_policy_version,
+      COALESCE((SELECT json_agg(json_build_object('sku',i.sku,'quantity',i.quantity,
+      'unitPriceKopecks',i.unit_price_kopecks::text)) FROM order_items i WHERE i.order_id=o.id),'[]'::json) AS items,
+      COALESCE((SELECT array_agg(p.number ORDER BY p.number) FROM lesson_number_pool p
+      WHERE p.order_id=o.id AND p.voided_at IS NULL),'{}'::int[]) AS active_numbers
+    FROM orders o JOIN customers c ON c.id=o.customer_id
+    WHERE ($1::text='all' OR o.status=$1)
+    ORDER BY o.created_at DESC,o.id DESC LIMIT $2 OFFSET $3
+   `,[status,limit,(page-1)*limit])
+  ]);
+  res.setHeader('Cache-Control','no-store');
+  res.json({total:total.rows[0].total,page,pageSize:limit,items:result.rows});
+ }catch(err){console.error('orders unavailable',err);reject(res,503,'Orders unavailable')}
+});
+app.get('/api/admin/catalog',adminAuth,(req,res)=>{
+ res.setHeader('Cache-Control','no-store');
+ res.json({items:Object.entries(catalog).map(([sku,p])=>({sku,name:p.name,priceKopecks:p.price}))});
+});
+app.get('/api/admin/system',adminAuth,(req,res)=>{
+ res.setHeader('Cache-Control','no-store');
+ res.json({paymentsEnabled:enabled,emailEnabled:process.env.EMAIL_ENABLED==='true',
+  bankConfigured:Boolean(config.terminal&&config.password),apiConfigured:Boolean(serverOrigin),
+  fiscalizationConfigured:Boolean(process.env.TBANK_TAXATION&&process.env.TBANK_ITEM_TAX),
+  editableSettings:false});
 });
 app.get('/api/admin/email-status',adminAuth,async(req,res)=>{
  try{
