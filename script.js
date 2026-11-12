@@ -10,7 +10,15 @@ async function createPayment(sku,quantity,email,buyer=null){
  if(url.protocol!=='https:')throw new Error('Некорректная ссылка банка');
  window.location.assign(url.href);
 }
+const consentPersonal=document.getElementById('coursePersonalConsent');
+const consentMarketing=document.getElementById('courseMarketingConsent');
+const checkoutPayButton=document.getElementById('demoButton');
+function syncCheckoutConsents(){checkoutPayButton.disabled=!(consentPersonal.checked&&consentMarketing.checked)}
+for(const checkbox of [consentPersonal,consentMarketing])checkbox.addEventListener('change',syncCheckoutConsents);
+syncCheckoutConsents();
 const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';function render(){document.getElementById('quantity').textContent=qty;document.getElementById('total').textContent=fmt(qty*2000)}document.getElementById('buyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('buyCourseDetails').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('headerBuyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('mobileBuyCourse').addEventListener('click',()=>{menu.classList.remove('open');qty=1;render();dlg.showModal()});document.getElementById('minus').addEventListener('click',()=>{qty=Math.max(1,qty-1);render()});document.getElementById('plus').addEventListener('click',()=>{qty=Math.min(100,qty+1);render()});document.getElementById('demoButton').addEventListener('click',async()=>{
+ if(!consentPersonal.checked||!consentMarketing.checked){syncCheckoutConsents();return;}
+
  const message=document.getElementById('demoMessage');
  const form=document.getElementById('checkoutForm');
  const values=Object.fromEntries(['lastName','firstName','patronymic','phone','email','instagram'].map(key=>[key,form.elements.namedItem(key)?.value.trim()||'']));
@@ -35,7 +43,7 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
  if(!ARTEMS_API){message.textContent='Демонстрация: данные заполнены, оплата появится после подключения сервера и банка.';return;}
  try{
   message.textContent='Создаём заказ…';
-  await createPayment('video_lesson',qty,values.email,values);
+  await createPayment('video_lesson',qty,values.email,{...values,personalConsent:consentPersonal.checked,marketingConsent:consentMarketing.checked});
  }catch(error){message.textContent=error.message}
 });const menu=document.getElementById('mobileNav');document.getElementById('mobileMenu').addEventListener('click',()=>menu.classList.toggle('open'));menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
 /* Play ASAP where permitted; explicit gesture fallback for browser autoplay policy. */

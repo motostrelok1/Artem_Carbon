@@ -3,6 +3,7 @@ import pg from 'pg';
 import {randomUUID,createHmac,scryptSync,timingSafeEqual} from 'node:crypto';
 import {catalog,validateCart} from './catalog.js';
 import {validateCourseBuyer} from './buyer-validation.js';
+import {validateCheckoutConsents} from './checkout-consents.js';
 import {buildInit,initPayment,validToken} from './tbank.js';
 import {assignLessonNumbers,voidLessonNumbers} from './lesson-numbers.js';
 
@@ -129,7 +130,10 @@ app.post('/api/orders',async(req,res)=>{
  if(!config.terminal||!config.password||!serverOrigin||!process.env.TBANK_TAXATION||!process.env.TBANK_ITEM_TAX)return reject(res,503,'Payment configuration incomplete');
  let buyer=null;
  if(Array.isArray(req.body?.items)&&req.body.items[0]?.sku==='video_lesson'){
-  try{buyer=validateCourseBuyer(req.body?.buyer)}catch(err){return reject(res,400,err.message)}
+  try{
+   buyer=validateCourseBuyer(req.body?.buyer);
+   validateCheckoutConsents(req.body?.buyer);
+  }catch(err){return reject(res,400,err.message)}
  }
  const email=buyer?.email||String(req.body?.email||'').trim().toLowerCase();
  if(email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return reject(res,400,'Valid email required');
@@ -141,8 +145,10 @@ app.post('/api/orders',async(req,res)=>{
   await client.query('INSERT INTO orders(id,customer_id,amount_kopecks) VALUES($1,$2,$3)',[orderId,customer.rows[0].id,item.amount]);
   await client.query('INSERT INTO order_items(order_id,sku,quantity,unit_price_kopecks) VALUES($1,$2,$3,$4)',[orderId,item.sku,item.quantity,item.unitPrice]);
   if(item.sku==='video_lesson'){
-   await client.query(`UPDATE orders SET buyer_last_name=$2,buyer_first_name=$3,buyer_patronymic=$4,buyer_phone=$5,buyer_instagram=$6 WHERE id=$1`,
-    [orderId,buyer.lastName,buyer.firstName,buyer.patronymic,buyer.phone,buyer.instagram]);
+   await client.query(`UPDATE orders SET buyer_last_name=$2,buyer_first_name=$3,buyer_patronymic=$4,buyer_phone=$5,buyer_instagram=$6,
+      personal_data_consent_at=NOW(),marketing_email_consent_at=NOW(),
+      consent_policy_version=$7 WHERE id=$1`,
+    [orderId,buyer.lastName,buyer.firstName,buyer.patronymic,buyer.phone,buyer.instagram,'draft-2026-11']);
   }
   await client.query('COMMIT');
  }catch(err){await client.query('ROLLBACK');console.error('order insert failed',err);return reject(res,503,'Order unavailable')}
