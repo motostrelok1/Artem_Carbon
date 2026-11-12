@@ -129,7 +129,11 @@ app.post('/api/orders',async(req,res)=>{
  if(!config.terminal||!config.password||!serverOrigin||!process.env.TBANK_TAXATION||!process.env.TBANK_ITEM_TAX)return reject(res,503,'Payment configuration incomplete');
  let buyer=null;
  if(Array.isArray(req.body?.items)&&req.body.items[0]?.sku==='video_lesson'){
-  try{buyer=validateCourseBuyer(req.body?.buyer)}catch(err){return reject(res,400,err.message)}
+  try{
+   buyer=validateCourseBuyer(req.body?.buyer);
+   if(req.body?.buyer?.personalConsent!==true||req.body?.buyer?.marketingConsent!==true)
+    return reject(res,400,'Required checkout consents must be confirmed');
+  }catch(err){return reject(res,400,err.message)}
  }
  const email=buyer?.email||String(req.body?.email||'').trim().toLowerCase();
  if(email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return reject(res,400,'Valid email required');
