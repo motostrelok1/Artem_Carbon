@@ -748,3 +748,11 @@ main{padding-top:var(--site-header-height)}
 .course-buyer-field input:focus-visible{outline:2px solid #f22532;outline-offset:1px}
 .course-buyer-field .course-optional{font-size:11px;font-weight:400;color:#a9a9af}
 @media(max-width:650px){.course-buyer-fields{grid-template-columns:1fr;gap:12px}}
+
+/* Independent consent controls for video lesson checkout */
+.checkout-consents{display:grid;gap:12px;margin:20px 0 16px;padding:16px;border:1px solid #55545a;background:rgba(10,10,14,.74)}
+.checkout-consent{display:flex;align-items:flex-start;gap:12px;color:#f5f5f7;font-size:14px;line-height:1.45;cursor:pointer}
+.checkout-consent input{flex:none;width:19px;height:19px;margin:1px 0 0;accent-color:#f22532;cursor:pointer}
+.checkout-consent a{color:#fff;text-decoration:underline;text-decoration-color:#f22532;text-underline-offset:3px}
+.checkout-consent a:hover,.checkout-consent a:focus-visible{color:#ff5662}
+#demoButton:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.6)}
