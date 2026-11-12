@@ -16,8 +16,9 @@ export function validateCourseBuyer(data) {
  if(!/^\+?[\d\s()\-]{10,24}$/.test(raw))throw new Error('Укажите корректный номер телефона');
  const digits=raw.replace(/\D/g,'');
  let phone;
- if(digits.length===10)phone='+7'+digits;
- else if(digits.length===11&&['7','8'].includes(digits[0]))phone='+7'+digits.slice(1);
+ if(digits.length===10&&!raw.startsWith('+')&&digits.startsWith('9'))phone='+7'+digits;
+ else if(digits.length===11&&digits[0]==='7')phone='+7'+digits.slice(1);
+ else if(digits.length===11&&digits[0]==='8'&&!raw.startsWith('+'))phone='+7'+digits.slice(1);
  else throw new Error('Укажите российский номер из 10 цифр с кодом +7 или 8');
  const email=typeof data.email==='string'?data.email.trim().toLowerCase():'';
  if(!email||email.length>254||!emailPattern.test(email))throw new Error('Укажите корректный email');
