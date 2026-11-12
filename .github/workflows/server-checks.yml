@@ -12,6 +12,22 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: artems_carbon_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d artems_carbon_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/artems_carbon_ci
     defaults:
       run:
         working-directory: server
@@ -26,4 +42,5 @@ jobs:
       - run: node --check src/catalog.js
       - run: node --check src/mail-worker.js
       - run: node --check src/email-template.js
+      - run: node --check test/offline-payment.integration.test.js
       - run: npm test
