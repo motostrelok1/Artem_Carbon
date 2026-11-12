@@ -1,9 +1,9 @@
 const ARTEMS_API=document.querySelector('meta[name="artems-api-base"]')?.content?.trim()||'';
-async function createPayment(sku,quantity,email){
+async function createPayment(sku,quantity,email,buyer=null){
  if(!ARTEMS_API)throw new Error('Оплата пока не подключена');
  const endpoint=new URL('/api/orders',ARTEMS_API);
  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({items:[{sku,quantity}],email})});
+  body:JSON.stringify({items:[{sku,quantity}],email,...(buyer?{buyer}:{})})});
  if(!res.ok)throw new Error(res.status===503?'Платежи пока недоступны':'Не удалось создать заказ');
  const data=await res.json();
  const url=new URL(data.paymentUrl);
@@ -12,11 +12,31 @@ async function createPayment(sku,quantity,email){
 }
 const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';function render(){document.getElementById('quantity').textContent=qty;document.getElementById('total').textContent=fmt(qty*2000)}document.getElementById('buyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('buyCourseDetails').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('headerBuyCourse').addEventListener('click',()=>{qty=1;render();dlg.showModal()});document.getElementById('mobileBuyCourse').addEventListener('click',()=>{menu.classList.remove('open');qty=1;render();dlg.showModal()});document.getElementById('minus').addEventListener('click',()=>{qty=Math.max(1,qty-1);render()});document.getElementById('plus').addEventListener('click',()=>{qty=Math.min(100,qty+1);render()});document.getElementById('demoButton').addEventListener('click',async()=>{
  const message=document.getElementById('demoMessage');
- const email=document.getElementById('courseBuyerEmail');
- if(!ARTEMS_API){message.textContent='Демонстрация: оплата появится после подключения сервера и банка.';return;}
- if(!email.reportValidity()||!email.value.trim()){email.focus();email.setCustomValidity('Укажите email');email.reportValidity();email.setCustomValidity('');return;}
- try{message.textContent='Создаём заказ…';await createPayment('video_lesson',qty,email.value.trim())}
- catch(error){message.textContent=error.message}
+ const form=document.getElementById('checkoutForm');
+ const values=Object.fromEntries(['lastName','firstName','patronymic','phone','email','instagram'].map(key=>[key,form.elements.namedItem(key)?.value.trim()||'']));
+ const namePattern=/^[\p{L}\p{M}'’ -]{2,80}$/u;
+ for(const key of ['lastName','firstName','patronymic']){
+  const input=form.elements.namedItem(key);
+  input.setCustomValidity(namePattern.test(values[key])?'':'Введите корректное значение (не менее 2 букв)');
+ }
+ const phone=form.elements.namedItem('phone');
+ const digits=values.phone.replace(/\D/g,'');
+ const phoneOk=(digits.length===10&&!values.phone.startsWith('+')&&digits.startsWith('9'))||(digits.length===11&&(digits.startsWith('7')||(digits.startsWith('8')&&!values.phone.startsWith('+'))));
+ phone.setCustomValidity(phoneOk?'':'Введите российский номер: +7 (999) 123-45-67');
+ const instagram=form.elements.namedItem('instagram');
+ const nick=values.instagram.replace(/^@/,'');
+ instagram.setCustomValidity(!nick||(/^[A-Za-z0-9_](?:[A-Za-z0-9._]{0,28}[A-Za-z0-9_])?$/.test(nick)&&!nick.includes('..'))?'':'Введите корректный ник Instagram');
+ if(!form.reportValidity()){
+  message.textContent='Проверьте обязательные поля';
+  return;
+ }
+ for(const key of ['lastName','firstName','patronymic','phone','instagram'])
+  form.elements.namedItem(key).setCustomValidity('');
+ if(!ARTEMS_API){message.textContent='Демонстрация: данные заполнены, оплата появится после подключения сервера и банка.';return;}
+ try{
+  message.textContent='Создаём заказ…';
+  await createPayment('video_lesson',qty,values.email,values);
+ }catch(error){message.textContent=error.message}
 });const menu=document.getElementById('mobileNav');document.getElementById('mobileMenu').addEventListener('click',()=>menu.classList.toggle('open'));menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
 /* Play ASAP where permitted; explicit gesture fallback for browser autoplay policy. */
 (()=>{
