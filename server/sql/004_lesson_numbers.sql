@@ -23,3 +23,8 @@ FROM lesson_number_pool p
 JOIN orders o ON o.id=p.order_id
 JOIN customers c ON c.id=o.customer_id
 WHERE o.status='paid' AND p.voided_at IS NULL;
+
+-- Production migrations may be run by postgres, while API connects as artems_app.
+-- Grant only permissions required for assignment, refund voiding, and verification.
+GRANT SELECT, UPDATE ON TABLE lesson_number_pool TO artems_app;
+GRANT SELECT ON TABLE active_lesson_number_registry TO artems_app;
