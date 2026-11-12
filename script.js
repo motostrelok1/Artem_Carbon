@@ -21,7 +21,7 @@ const dlg=document.getElementById('checkout');let qty=1;const fmt=n=>new Intl.Nu
  }
  const phone=form.elements.namedItem('phone');
  const digits=values.phone.replace(/\D/g,'');
- const phoneOk=digits.length===10||(digits.length===11&&['7','8'].includes(digits[0]));
+ const phoneOk=(digits.length===10&&!values.phone.startsWith('+')&&digits.startsWith('9'))||(digits.length===11&&(digits.startsWith('7')||(digits.startsWith('8')&&!values.phone.startsWith('+'))));
  phone.setCustomValidity(phoneOk?'':'Введите российский номер: +7 (999) 123-45-67');
  const instagram=form.elements.namedItem('instagram');
  const nick=values.instagram.replace(/^@/,'');
