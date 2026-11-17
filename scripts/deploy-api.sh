@@ -7,6 +7,7 @@ if [[ "${EUID}" -ne 0 ]]; then echo "Run with sudo: sudo bash $0" >&2; exit 1; f
 APP_ROOT="/opt/artems-carbon"
 REPO_DIR="$APP_ROOT/repo"
 SERVER_DIR="$APP_ROOT/server"
+ADMIN_DIR="$APP_ROOT/admin"
 REPO_URL="https://github.com/motostrelok1/Artem_Carbon.git"
 BRANCH="${DEPLOY_BRANCH:-ops/new-vds-bootstrap}"
 
@@ -26,8 +27,14 @@ if [[ -e "$SERVER_DIR/.env" ]]; then
 fi
 install -d -o artems-carbon -g artems-carbon -m 0750 "$SERVER_DIR"
 rsync -a --delete --exclude='.env' --exclude='.env.deploy-backup' "$REPO_DIR/server/" "$SERVER_DIR/"
-chown -R artems-carbon:artems-carbon "$REPO_DIR" "$SERVER_DIR"
-chmod 0750 "$APP_ROOT" "$REPO_DIR" "$SERVER_DIR"
+[[ -f "$REPO_DIR/admin/index.html" && -f "$REPO_DIR/admin/admin.js" && -f "$REPO_DIR/admin/admin.css" ]] || {
+  echo "Admin UI files are missing from repository checkout." >&2
+  exit 1
+}
+install -d -o artems-carbon -g artems-carbon -m 0750 "$ADMIN_DIR"
+rsync -a --delete "$REPO_DIR/admin/" "$ADMIN_DIR/"
+chown -R artems-carbon:artems-carbon "$REPO_DIR" "$SERVER_DIR" "$ADMIN_DIR"
+chmod 0750 "$APP_ROOT" "$REPO_DIR" "$SERVER_DIR" "$ADMIN_DIR"
 
 if [[ -e "$SERVER_DIR/.env" ]]; then
   chmod 0600 "$SERVER_DIR/.env"
