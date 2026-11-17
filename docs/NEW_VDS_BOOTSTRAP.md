@@ -80,3 +80,15 @@ curl -fsSL https://raw.githubusercontent.com/motostrelok1/Artem_Carbon/ops/new-v
 Не применять `prepare-database.sh` до решения о переносе production-данных. Для чистого нового проекта он создаёт пустую схему; для миграции сначала нужен свежий dump со старого сервера и сверка состава данных. Платежи и email остаются выключенными.
 
 Примечание по admin UI: `scripts/deploy-api.sh` размещает также каталог `admin/` в `/opt/artems-carbon/admin`. Это обязательная часть deployment: контрактные тесты API проверяют реальную HTML/JS-панель и безопасность её вывода. Если тесты сообщают `ENOENT /opt/artems-carbon/admin/...`, обновить скрипт из ветки и повторить deploy; не обходить и не отключать эти тесты.
+
+## Безопасный backup старой production-БД
+
+Перед переносом запустить на **старом** VDS (не на новом):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/motostrelok1/Artem_Carbon/ops/new-vds-bootstrap/scripts/backup-source-db.sh | sudo bash
+```
+
+Скрипт читает только `DATABASE_URL` из `/opt/artems-carbon/server/.env` (или использует экспортированную переменную), создаёт PostgreSQL custom dump в `/opt/backups/artems-carbon`, проверяет архив через `pg_restore --list`, записывает SHA-256 и оставляет исходную БД без изменений. Он не останавливает приложение и не удаляет backup. Переносить на новый VDS нужно и файл `.dump`, и соответствующий `.sha256`.
+
+**Важно:** не запускать `prepare-database.sh` на новом VDS перед решением о восстановлении: он предназначен для пустой базы с миграциями, а полный production dump уже содержит схему и данные. Для восстановления используем отдельный сценарий, который откажется работать с непустой целевой БД.
