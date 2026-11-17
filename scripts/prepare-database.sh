@@ -22,16 +22,10 @@ systemctl is-active --quiet postgresql || { echo "PostgreSQL is not active." >&2
 
 DB_PASSWORD="$(openssl rand -hex 32)"
 export DB_PASSWORD DB_NAME DB_USER
-runuser -u postgres --preserve-environment -- psql -v ON_ERROR_STOP=1 postgres <<SQL
-DO \$\$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$DB_USER') THEN
-    CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASSWORD';
-  ELSE
-    ALTER ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASSWORD';
-  END IF;
-END
-\$\$;
+runuser -u postgres -- psql -v ON_ERROR_STOP=1 -v db_user="$DB_USER" -v db_password="$DB_PASSWORD" postgres <<'SQL'
+SELECT format('CREATE ROLE %I LOGIN PASSWORD %L', :'db_user', :'db_password')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'db_user') \\gexec
+SELECT format('ALTER ROLE %I WITH LOGIN PASSWORD %L', :'db_user', :'db_password') \\gexec
 SQL
 
 if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1; then
@@ -39,8 +33,8 @@ if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='
 fi
 
 for f in 001_sales.sql 002_email_outbox.sql 003_course_buyer.sql 004_lesson_numbers.sql 005_checkout_consents.sql; do
-  echo "Applying $f"
-  runuser -u postgres -- psql -v ON_ERROR_STOP=1 --dbname="$DB_NAME" --file="$SQL_DIR/$f"
+  echo "Applying $f as $DB_USER"
+  PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$SQL_DIR/$f"
 done
 
 install -d -o artems-carbon -g artems-carbon -m 0750 "$SERVER_DIR"
