@@ -10,32 +10,24 @@
 - `SESSION_SECRET=<случайный секрет не менее 32 байт>`
 - `API_PUBLIC_URL=https://carbon-api.dvizh-school.ru`
 
-Сгенерировать значения локально на VDS, не в GitHub и не отправлять их в чат:
+Сгенерировать значения локально на VDS. Ввод пароля скрытый; сам пароль не передавать в аргументах команды и не отправлять в чат:
 
 ```bash
-cd /opt/artems-carbon/server
+read -rsp 'Новый пароль администратора: ' ADMIN_PASSWORD; echo
+export ADMIN_PASSWORD
 node --input-type=module <<'NODE'
 import { randomBytes, scryptSync } from 'node:crypto';
-const password = process.stdin.isTTY ? await new Promise(resolve => {
-  process.stdout.write('Admin password: ');
-  process.stdin.setRawMode?.(true);
-  let value='';
-  process.stdin.on('data', chunk => {
-    const s=chunk.toString();
-    if(s==='\n'||s==='\r'){process.stdin.setRawMode?.(false);process.stdout.write('\n');resolve(value);}
-    else if(s==='\u0003')process.exit(1); else value+=s;
-  });
-}) : '';
-if(!password || password.length < 14) throw new Error('Use an admin password of at least 14 characters');
-const salt=randomBytes(16).toString('hex');
-const hash=scryptSync(password,salt,64).toString('hex');
-console.log('ADMIN_PASSWORD_HASH='+salt+':'+hash);
-console.log('SESSION_SECRET='+randomBytes(48).toString('base64url'));
+const password = process.env.ADMIN_PASSWORD || '';
+if (password.length < 14) throw new Error('Use an admin password of at least 14 characters');
+const salt = randomBytes(16).toString('hex');
+const hash = scryptSync(password, salt, 64).toString('hex');
+console.log('ADMIN_PASSWORD_HASH=' + salt + ':' + hash);
+console.log('SESSION_SECRET=' + randomBytes(48).toString('base64url'));
 NODE
+unset ADMIN_PASSWORD
 ```
 
-Команда выше предназначена как шаблон; безопаснее вводить пароль через скрытый prompt и не сохранять его в shell history. Не использовать демонстрационный пароль 666666.
-
+Добавить выведенные значения в приватный `.env` вручную, не публиковать их. Рекомендуется использовать уникальный пароль не менее 14 символов и хранить резервную копию секретов в защищённом менеджере паролей.
 ## Размещение файлов
 
 Скопировать каталог `admin/` из проверенного релиза в каталог, доступный Nginx, например `/var/www/artems-carbon/admin/`. В Nginx на API-домене настроить отдельный location для статики `/admin/`, а остальные `/api/` запросы оставить проксируемыми на Node.js. Не делать alias на корень репозитория и не публиковать `.env`, сертификаты или SQL.
