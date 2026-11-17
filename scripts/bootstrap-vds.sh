@@ -69,7 +69,7 @@ if ! pg_lsclusters | awk 'NR>1 && $1=="16" && $4=="online" {found=1} END{exit !f
   echo "PostgreSQL 16 cluster is not online. Inspect: sudo pg_lsclusters" >&2
   exit 1
 fi
-if ! ss -lnt | grep -qE '127\\.0\\.0\\.1:5432|\\[::1\\]:5432'; then
+if ! ss -lnt | grep -qE '127\.0\.0\.1:5432|\[::1\]:5432'; then
   echo "Warning: no loopback PostgreSQL listener detected; inspect pg_hba.conf/postgresql.conf before proceeding." >&2
 fi
 
