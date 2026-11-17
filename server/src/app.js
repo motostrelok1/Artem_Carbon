@@ -77,6 +77,7 @@ app.post('/api/admin/login',(req,res)=>{
  const ip=req.ip||'unknown';const now=Date.now();
  const state=attempts.get(ip)||{count:0,until:0};
  if(state.until>now)return reject(res,429,'Try later');
+ if(state.until!==0&&state.until<=now){state.count=0;state.until=0;}
  if(typeof req.body?.password!=='string'||!validPassword(req.body.password)){
   state.count++;state.until=state.count>=5?now+15*60*1000:0;attempts.set(ip,state);
   return reject(res,401,'Invalid credentials');
