@@ -24,12 +24,12 @@ if grep -q '^ADMIN_PASSWORD_HASH=' "$ENV_FILE" && grep -q '^SESSION_SECRET=' "$E
   echo "Admin credentials already exist; preserving them."
 else
   # Generate a one-time random admin password; no interactive stdin prompt.
-  ADMIN_PASSWORD="$(node -e \"process.stdout.write(require('node:crypto').randomBytes(24).toString('base64url'))\")"
+  ADMIN_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
   export ADMIN_PASSWORD
-  ADMIN_PASSWORD_HASH="$(node -e \"const c=require('node:crypto');let s=c.randomBytes(16).toString('hex');let p=process.env.ADMIN_PASSWORD;process.stdout.write(s+':'+c.scryptSync(p,s,64).toString('hex'))\")"
-  printf '\\n============================================================\\n'
-  printf 'ONE-TIME ADMIN PASSWORD (save it now; it will not be shown again):\\n%s\\n' "$ADMIN_PASSWORD"
-  printf '============================================================\\n\\n'
+  ADMIN_PASSWORD_HASH="$(node -e 'const c=require("node:crypto");let s=c.randomBytes(16).toString("hex");let p=process.env.ADMIN_PASSWORD;process.stdout.write(s+":"+c.scryptSync(p,s,64).toString("hex"))')"
+  printf '\n============================================================\n'
+  printf 'ONE-TIME ADMIN PASSWORD (save it now; it will not be shown again):\n%s\n' "$ADMIN_PASSWORD"
+  printf '============================================================\n\n'
   unset ADMIN_PASSWORD
   SESSION_SECRET="$(openssl rand -hex 32)"
   export ADMIN_PASSWORD_HASH SESSION_SECRET
