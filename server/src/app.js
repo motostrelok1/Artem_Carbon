@@ -25,11 +25,17 @@ function formatPeriod(period){
  if(period==='all')return null;
  throw new Error('Invalid period');
 }
+const allowedOrigins=new Set([origin,serverOrigin].filter(Boolean));
 app.use((req,res,next)=>{
  res.setHeader('Vary','Origin');
  const requestOrigin=req.headers.origin;
- if(requestOrigin===origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Access-Control-Allow-Credentials','true');res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');}
- if(req.method==='OPTIONS')return requestOrigin===origin?res.sendStatus(204):res.sendStatus(403);
+ if(allowedOrigins.has(requestOrigin)){
+  res.setHeader('Access-Control-Allow-Origin',requestOrigin);
+  res.setHeader('Access-Control-Allow-Credentials','true');
+  res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');
+ }
+ if(req.method==='OPTIONS')return allowedOrigins.has(requestOrigin)?res.sendStatus(204):res.sendStatus(403);
  next();
 });
 app.get('/health',(req,res)=>res.json({status:'ok',paymentsEnabled:enabled}));
@@ -73,7 +79,7 @@ app.get('/api/admin/session',adminAuth,(req,res)=>{
 });
 const attempts=new Map();
 app.post('/api/admin/login',(req,res)=>{
- if(req.headers.origin!==serverOrigin)return reject(res,403,'Forbidden origin');
+ if(req.headers.origin!==origin)return reject(res,403,'Forbidden origin');
  const ip=req.ip||'unknown';const now=Date.now();
  const state=attempts.get(ip)||{count:0,until:0};
  if(state.until>now)return reject(res,429,'Try later');
