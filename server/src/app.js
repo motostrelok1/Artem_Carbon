@@ -67,6 +67,10 @@ function adminAuth(req,res,next){
   next();
  }catch{return reject(res,401,'Authentication required')}
 }
+app.get('/api/admin/session',adminAuth,(req,res)=>{
+ res.setHeader('Cache-Control','no-store');
+ res.json({authenticated:true,expiresInSeconds:28800});
+});
 const attempts=new Map();
 app.post('/api/admin/login',(req,res)=>{
  if(req.headers.origin!==serverOrigin)return reject(res,403,'Forbidden origin');
