@@ -14,8 +14,8 @@ BRANCH="${DEPLOY_BRANCH:-ops/new-vds-bootstrap}"
 systemctl is-active --quiet postgresql || { echo "PostgreSQL must be active first." >&2; exit 1; }
 install -d -o artems-carbon -g artems-carbon -m 0750 "$APP_ROOT"
 if [[ -d "$REPO_DIR/.git" ]]; then
-  git -C "$REPO_DIR" fetch --depth=1 origin "$BRANCH"
-  git -C "$REPO_DIR" checkout -f FETCH_HEAD
+  git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" fetch --depth=1 origin "$BRANCH"
+  git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" checkout -f FETCH_HEAD
 else
   [[ ! -e "$REPO_DIR" ]] || { echo "$REPO_DIR exists but is not a Git repository; refusing to overwrite." >&2; exit 1; }
   git clone --depth=1 --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
