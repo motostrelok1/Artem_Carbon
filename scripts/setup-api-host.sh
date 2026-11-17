@@ -23,15 +23,13 @@ echo "New VDS IPv4: $(hostname -I | awk '{print $1}')"
 if grep -q '^ADMIN_PASSWORD_HASH=' "$ENV_FILE" && grep -q '^SESSION_SECRET=' "$ENV_FILE"; then
   echo "Admin credentials already exist; preserving them."
 else
-  if [[ ! -r /dev/tty || ! -w /dev/tty ]]; then
-    echo "Interactive terminal is required. Run this script from an SSH terminal." >&2
-    exit 1
-  fi
-  read -r -s -p "Set a new strong admin password (minimum 14 characters): " ADMIN_PASSWORD </dev/tty
-  echo >/dev/tty
-  [[ "${#ADMIN_PASSWORD}" -ge 14 ]] || { unset ADMIN_PASSWORD; echo "Password too short." >&2; exit 1; }
+  # Generate a one-time random admin password; no interactive stdin prompt.
+  ADMIN_PASSWORD="$(node -e \"process.stdout.write(require('node:crypto').randomBytes(24).toString('base64url'))\")"
   export ADMIN_PASSWORD
-  ADMIN_PASSWORD_HASH="$(node -e "const c=require('node:crypto');let s=c.randomBytes(16).toString('hex');let p=process.env.ADMIN_PASSWORD;process.stdout.write(s+':'+c.scryptSync(p,s,64).toString('hex'))")"
+  ADMIN_PASSWORD_HASH="$(node -e \"const c=require('node:crypto');let s=c.randomBytes(16).toString('hex');let p=process.env.ADMIN_PASSWORD;process.stdout.write(s+':'+c.scryptSync(p,s,64).toString('hex'))\")"
+  printf '\\n============================================================\\n'
+  printf 'ONE-TIME ADMIN PASSWORD (save it now; it will not be shown again):\\n%s\\n' "$ADMIN_PASSWORD"
+  printf '============================================================\\n\\n'
   unset ADMIN_PASSWORD
   SESSION_SECRET="$(openssl rand -hex 32)"
   export ADMIN_PASSWORD_HASH SESSION_SECRET
@@ -115,6 +113,8 @@ server {
     }
 }
 NGINX
+chmod 0755 "$APP_ROOT" "$ADMIN_DIR"
+chmod 0644 "$ADMIN_DIR/index.html" "$ADMIN_DIR/admin.js" "$ADMIN_DIR/admin.css"
 ln -sfn "$SITE" "$ENABLED"
 nginx -t
 systemctl reload nginx
