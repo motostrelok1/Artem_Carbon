@@ -47,6 +47,11 @@ if ! id artems-carbon >/dev/null 2>&1; then
 fi
 install -d -o artems-carbon -g artems-carbon -m 0750 /opt/artems-carbon
 install -d -o artems-carbon -g artems-carbon -m 0750 /opt/artems-carbon/server
+# Allow the initial Ubuntu operator account to traverse/manage deployment files
+# through the dedicated service group. A fresh SSH login is required afterwards.
+if id ubuntu >/dev/null 2>&1; then
+  usermod -aG artems-carbon ubuntu
+fi
 install -d -o www-data -g www-data -m 0755 /var/www/artems-carbon
 
 log "Enable core services"
