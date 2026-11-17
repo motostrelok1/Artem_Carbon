@@ -78,3 +78,5 @@ curl -fsSL https://raw.githubusercontent.com/motostrelok1/Artem_Carbon/ops/new-v
 Скрипт получает контролируемую ветку, размещает исходники в `/opt/artems-carbon/repo`, копирует API в `/opt/artems-carbon/server` (сохраняя существующий `.env`), устанавливает production dependencies, запускает тесты и создаёт systemd unit. Если приватного `.env` ещё нет, API не запускается.
 
 Не применять `prepare-database.sh` до решения о переносе production-данных. Для чистого нового проекта он создаёт пустую схему; для миграции сначала нужен свежий dump со старого сервера и сверка состава данных. Платежи и email остаются выключенными.
+
+Примечание по admin UI: `scripts/deploy-api.sh` размещает также каталог `admin/` в `/opt/artems-carbon/admin`. Это обязательная часть deployment: контрактные тесты API проверяют реальную HTML/JS-панель и безопасность её вывода. Если тесты сообщают `ENOENT /opt/artems-carbon/admin/...`, обновить скрипт из ветки и повторить deploy; не обходить и не отключать эти тесты.
