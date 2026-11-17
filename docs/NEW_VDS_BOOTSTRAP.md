@@ -66,3 +66,15 @@ sudo bash /opt/artems-carbon/scripts/prepare-database.sh
 ## Доступ оператора к каталогу приложения
 
 Bootstrap добавляет пользователя `ubuntu` в группу `artems-carbon`, чтобы он мог проходить в закрытый каталог приложения без изменения владельца сервиса. После изменения групп требуется новый SSH-сеанс. Служба приложения продолжает работать от отдельного системного пользователя `artems-carbon`.
+
+## Развёртывание API
+
+После базового bootstrap запустить от root:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/motostrelok1/Artem_Carbon/ops/new-vds-bootstrap/scripts/deploy-api.sh | sudo bash
+```
+
+Скрипт получает контролируемую ветку, размещает исходники в `/opt/artems-carbon/repo`, копирует API в `/opt/artems-carbon/server` (сохраняя существующий `.env`), устанавливает production dependencies, запускает тесты и создаёт systemd unit. Если приватного `.env` ещё нет, API не запускается.
+
+Не применять `prepare-database.sh` до решения о переносе production-данных. Для чистого нового проекта он создаёт пустую схему; для миграции сначала нужен свежий dump со старого сервера и сверка состава данных. Платежи и email остаются выключенными.
