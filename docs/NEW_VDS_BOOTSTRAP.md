@@ -1,4 +1,4 @@
-# Новый VDS ARTEM CARBON — автоматизированная подготовка
+# Новый VDS Artem Carbon — автоматизированная подготовка
 
 Целевой сервер: Ubuntu 22.04.5 LTS, 195.209.222.219. Подтверждённые характеристики: 4 vCPU, 7.8 GiB RAM, 78 GiB disk. Часовой пояс Europe/Moscow; UFW разрешает SSH/HTTP/HTTPS; Swap 2 GiB настроен.
 
