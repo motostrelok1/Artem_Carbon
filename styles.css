@@ -756,3 +756,88 @@ main{padding-top:var(--site-header-height)}
 .checkout-consent a{color:#fff;text-decoration:underline;text-decoration-color:#f22532;text-underline-offset:3px}
 .checkout-consent a:hover,.checkout-consent a:focus-visible{color:#ff5662}
 #demoButton:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.6)}
+
+/* Confirmed sales counter inside the video lesson checkout dialog. */
+.checkout-sales{margin:18px 0 20px;padding:15px 17px;background:#0b0c10;border:1px solid #45454d;border-left:3px solid var(--red)}
+.checkout-sales-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.checkout-sales-heading>span{font-size:10px;font-weight:900;letter-spacing:2px;color:#c7c7ce}
+.checkout-sales-heading strong{font-size:23px;white-space:nowrap}
+.checkout-sales-heading small{font-size:13px;color:#a6a6ae;font-weight:600}
+.lesson-sales-track{height:9px;border:1px solid #ffffff55;background:#292a30;overflow:hidden;border-radius:8px}
+.lesson-sales-fill{display:block;height:100%;width:0;background:var(--red);transition:width .3s ease}
+.lesson-sales-caption{margin:8px 0 0;color:#aaa;font-size:12px}
+.checkout .close{z-index:2;display:grid;place-items:center;width:42px;height:42px;border:1px solid #ffffff55;background:#24252b;color:#fff;cursor:pointer}
+.checkout .close:hover,.checkout .close:focus-visible{background:var(--red);border-color:var(--red)}
+
+
+/* Move the vertical course poster from the lesson-details section to the
+   left side of the opening hero. Keep the original 9:16 artwork intact. */
+@media(min-width:901px){
+ .lesson-first-wrap{
+  display:grid;
+  grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr);
+  justify-content:stretch;
+  align-items:center;
+  gap:clamp(24px,4vw,64px);
+  padding-left:max(5%,calc((100% - 1440px)/2));
+  padding-right:max(5%,calc((100% - 1440px)/2));
+ }
+ .lesson-first-poster{
+  display:block;
+  width:auto;
+  height:min(76svh,720px);
+  max-height:calc(100% - 20px);
+  aspect-ratio:9 / 16;
+  justify-self:center;
+  box-shadow:0 22px 65px #000b;
+  border:1px solid #ffffff55;
+  background:#101116;
+ }
+ .lesson-first-poster img{display:block;width:100%;height:100%;object-fit:contain}
+ .lesson-first-content{width:100%;max-width:680px;justify-self:end}
+}
+#lesson-details .lesson-details-inner{grid-template-columns:minmax(0,1fr)}
+@media(max-width:900px){
+ .lesson-first-wrap{
+  display:grid;
+  grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr);
+  justify-content:stretch;
+  align-items:center;
+  gap:20px;
+  padding:95px 5% 60px;
+ }
+ .lesson-first-poster{
+  display:block;
+  width:100%;
+  max-width:270px;
+  height:auto;
+  max-height:58svh;
+  aspect-ratio:9 / 16;
+  justify-self:center;
+ }
+ .lesson-first-poster img{display:block;width:100%;height:100%;object-fit:contain}
+ .lesson-first-content{width:100%;max-width:none;justify-self:stretch}
+}
+@media(max-width:600px){
+ .lesson-hero{height:auto;min-height:0}
+ .lesson-first-wrap{
+  grid-template-columns:minmax(0,1fr);
+  justify-items:center;
+  align-content:start;
+  gap:18px;
+  min-height:0;
+  height:auto;
+  padding:95px 5% 65px;
+ }
+ .lesson-first-poster{
+  width:min(58vw,230px);
+  max-width:230px;
+  max-height:36svh;
+  height:auto;
+  aspect-ratio:9 / 16;
+ }
+ .lesson-first-content{width:100%;max-width:560px}
+ .lesson-first-content h1{font-size:clamp(54px,13vw,76px);margin:12px 0}
+ .lesson-first-content h2{font-size:21px}
+ .lesson-first-content .actions{margin-top:16px}
+}
