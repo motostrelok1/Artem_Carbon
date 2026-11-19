@@ -16,7 +16,7 @@ const checkoutPayButton=document.getElementById('demoButton');
 function syncCheckoutConsents(){checkoutPayButton.disabled=!(consentPersonal.checked&&consentMarketing.checked)}
 for(const checkbox of [consentPersonal,consentMarketing])checkbox.addEventListener('change',syncCheckoutConsents);
 syncCheckoutConsents();
-const dlg=document.getElementById('checkout');let qty=1;let selectedFormat='custom';let checkoutOpener=null;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';
+const dlg=document.getElementById('checkout');let qty=1;let customQty=1;let selectedFormat='custom';let checkoutOpener=null;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';
 function render(){
  const quantity=document.getElementById('quantity');
  if(quantity)quantity.textContent=qty;
@@ -31,10 +31,10 @@ function render(){
 }
 function chooseFormat(format){
  selectedFormat=format;
- qty=format==='custom'?qty:Number(format);
+ if(format==='custom')qty=customQty;else qty=Number(format);
  render();
 }
-function openCourseCheckout(opener){checkoutOpener=opener;qty=1;selectedFormat='custom';render();dlg.showModal();window.refreshLessonSales?.()}
+function openCourseCheckout(opener){checkoutOpener=opener;qty=1;customQty=1;selectedFormat='custom';render();dlg.showModal();window.refreshLessonSales?.()}
 function closeCourseCheckout(){if(dlg.open)dlg.close('cancel')}
 document.getElementById('buyCourse').addEventListener('click',e=>openCourseCheckout(e.currentTarget));
 document.getElementById('buyCourseDetails')?.addEventListener('click',e=>openCourseCheckout(e.currentTarget));
@@ -43,8 +43,8 @@ document.getElementById('mobileBuyCourse').addEventListener('click',e=>{menu.cla
 document.getElementById('checkoutClose').addEventListener('click',closeCourseCheckout);
 dlg.addEventListener('click',e=>{if(e.target===dlg)closeCourseCheckout()});
 dlg.addEventListener('close',()=>{if(checkoutOpener?.isConnected)checkoutOpener.focus();checkoutOpener=null});
-document.getElementById('minus').addEventListener('click',()=>{selectedFormat='custom';qty=Math.max(1,qty-1);render()});
-document.getElementById('plus').addEventListener('click',()=>{selectedFormat='custom';qty=Math.min(10,qty+1);render()});
+document.getElementById('minus').addEventListener('click',()=>{selectedFormat='custom';customQty=Math.max(1,customQty-1);qty=customQty;render()});
+document.getElementById('plus').addEventListener('click',()=>{selectedFormat='custom';customQty=Math.min(10,customQty+1);qty=customQty;render()});
 document.querySelectorAll('.lesson-format-select').forEach(button=>button.addEventListener('click',()=>{
  chooseFormat(button.dataset.format);
  document.querySelector('.course-buyer-fields').scrollIntoView({behavior:'smooth',block:'start'});
