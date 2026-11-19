@@ -22,6 +22,7 @@ function render(){
  if(quantity)quantity.textContent=qty;
  document.getElementById('total').textContent=fmt(qty*2000);
  document.getElementById('customFormatPrice').textContent=fmt(qty*2000);
+ document.getElementById('customFormatQuestions').textContent=(qty-1)+' '+(qty-1===1?'вопрос':qty-1>1&&qty-1<5?'вопроса':'вопросов');
  document.getElementById('selectedFormatLabel').textContent=qty.toLocaleString('ru-RU')+' '+(qty===1?'участие':qty<5?'участия':'участий');
  document.getElementById('minus').disabled=qty<=1;
  document.getElementById('plus').disabled=qty>=10;
