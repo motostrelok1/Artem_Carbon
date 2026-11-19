@@ -18,6 +18,9 @@ command -v nginx >/dev/null || { echo "Nginx is not installed." >&2; exit 1; }
 command -v rsync >/dev/null || { echo "rsync is required." >&2; exit 1; }
 
 install -d -o artems-carbon -g artems-carbon -m 0750 "$APP_ROOT"
+# Nginx (www-data) must traverse APP_ROOT to read the public static site,
+# but must not be able to list the application root.
+chmod 0711 "$APP_ROOT"
 if [[ -d "$REPO_DIR/.git" ]]; then
   git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" fetch --depth=1 origin "$BRANCH"
   git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" checkout -f FETCH_HEAD
@@ -105,22 +108,48 @@ UMask=0077
 WantedBy=multi-user.target
 UNIT
 
+# Preserve the already-issued Let's Encrypt certificate on every deployment.
+CERT_DIR="/etc/letsencrypt/live/artemcarbon.ru"
+[[ -s "$CERT_DIR/fullchain.pem" && -s "$CERT_DIR/privkey.pem" ]] || {
+  echo "Existing Let's Encrypt certificate is missing; refusing to install HTTPS config." >&2
+  exit 1
+}
+install -d -o root -g root -m 0755 /var/www/letsencrypt
+
 cat > /etc/nginx/sites-available/artemcarbon.ru <<'NGINX'
+# HTTP: allow ACME HTTP-01 challenges and redirect all other traffic to HTTPS.
 server {
     listen 80;
     listen [::]:80;
-    server_name www.artemcarbon.ru;
-    return 301 http://artemcarbon.ru$request_uri;
+    server_name artemcarbon.ru www.artemcarbon.ru api.artemcarbon.ru;
+    server_tokens off;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
 }
 
+# Public website.
 server {
-    listen 80;
-    listen [::]:80;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name artemcarbon.ru;
     root /opt/artems-carbon/site;
     index index.html;
     server_tokens off;
     client_max_body_size 20m;
+
+    ssl_certificate /etc/letsencrypt/live/artemcarbon.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/artemcarbon.ru/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
 
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
@@ -148,15 +177,34 @@ server {
     }
 }
 
+# www is covered by the same certificate and redirects to the canonical host.
 server {
-    listen 80;
-    listen [::]:80;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name www.artemcarbon.ru;
+
+    ssl_certificate /etc/letsencrypt/live/artemcarbon.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/artemcarbon.ru/privkey.pem;
+    return 301 https://artemcarbon.ru$request_uri;
+}
+
+# API: separate hostname, same certificate.
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name api.artemcarbon.ru;
     server_tokens off;
     client_max_body_size 1m;
 
+    ssl_certificate /etc/letsencrypt/live/artemcarbon.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/artemcarbon.ru/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options DENY always;
 
     location = /health {
         proxy_pass http://127.0.0.1:3002/health;
@@ -178,6 +226,16 @@ server {
     location / { return 404; }
 }
 NGINX
+
+# The API hostname is defined above in the consolidated vhost. Disable only
+# the duplicate symlink; retain the available file for rollback/reference.
+if [[ -L /etc/nginx/sites-enabled/api.artemcarbon.ru ]]; then
+  rm -f /etc/nginx/sites-enabled/api.artemcarbon.ru
+fi
+ln -sfn /etc/nginx/sites-available/artemcarbon.ru /etc/nginx/sites-enabled/artemcarbon.ru
+
+nginx -t
+systemctl reload nginx
 
 ln -sfn /etc/nginx/sites-available/artemcarbon.ru /etc/nginx/sites-enabled/artemcarbon.ru
 nginx -t
