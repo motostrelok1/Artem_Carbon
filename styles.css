@@ -889,3 +889,71 @@ main{padding-top:var(--site-header-height)}
 #shop .product-gallery{
  margin-top:30px;
 }
+
+
+/* Carbon-fiber checkout with a custom 1–10 selector and four fixed formats. */
+.checkout{
+ width:min(1080px,calc(100% - 24px));
+ max-width:1080px;
+ max-height:calc(100dvh - 24px);
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ padding:clamp(18px,2.5vw,34px);
+ color:#fff;
+ background-color:#101115;
+ background-image:
+  repeating-linear-gradient(45deg,rgba(255,255,255,.045) 0 2px,transparent 2px 5px,rgba(0,0,0,.22) 5px 7px,transparent 7px 10px),
+  repeating-linear-gradient(-45deg,rgba(255,255,255,.025) 0 2px,transparent 2px 5px),
+  linear-gradient(135deg,#17181d,#090a0d);
+ border:1px solid #55565e;
+ box-shadow:0 24px 90px #000e;
+}
+.checkout::backdrop{background:rgba(0,0,0,.82);backdrop-filter:blur(5px)}
+.checkout form{position:relative}
+.checkout>form>.eyebrow{margin:0 0 4px}
+.checkout>form>h2{font-size:clamp(25px,3vw,38px);letter-spacing:-1px;line-height:1.1;margin:0 54px 5px 0}
+.checkout>form>.muted{max-width:none;margin:0 0 16px;color:#c5c5cb}
+.checkout .close{position:absolute;right:0;top:0}
+.checkout-sales{margin:16px 0 20px;padding:14px 18px;background:rgba(7,8,11,.78);border:1px solid #55565e;border-left:3px solid var(--red);backdrop-filter:blur(6px)}
+.lesson-format-grid{display:grid;grid-template-columns:minmax(250px,.9fr) minmax(0,1.6fr);gap:16px;align-items:stretch}
+.lesson-format-card{min-width:0;padding:18px;background:rgba(23,24,29,.91);border:1px solid #55565e;border-radius:17px;display:flex;flex-direction:column;gap:4px;transition:border-color .15s,box-shadow .15s,background .15s}
+.lesson-format-card.is-selected{border:2px solid var(--red);padding:17px;box-shadow:0 0 0 1px #f2253230,0 10px 30px #0007;background:rgba(29,23,26,.96)}
+.lesson-format-card h3{font-size:clamp(25px,2.6vw,36px);line-height:1.1;margin:0 0 8px;font-weight:900}
+.lesson-format-card p{font-size:14px;line-height:1.4;margin:0;color:#f2f2f4}
+.lesson-format-divider{height:1px;background:#55565e;margin:12px 0 10px}
+.lesson-format-price{font-size:clamp(24px,2.5vw,34px);line-height:1.2;font-weight:900;margin:0 0 12px;white-space:nowrap}
+.lesson-format-packs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lesson-format-packs .lesson-format-card{padding:14px}
+.lesson-format-packs .lesson-format-card.is-selected{padding:13px}
+.lesson-format-packs .lesson-format-card h3{font-size:clamp(24px,2.2vw,31px)}
+.lesson-format-packs .lesson-format-price{font-size:clamp(22px,2.1vw,29px);margin-top:auto}
+.lesson-format-select{width:100%;min-height:42px;margin-top:8px;padding:9px 14px;border:1px solid var(--red);border-radius:7px;background:linear-gradient(180deg,#fa2635,#b90e1b);color:#fff;font-weight:900;cursor:pointer}
+.lesson-format-select:hover,.lesson-format-select:focus-visible{filter:brightness(1.18);outline:2px solid #fff;outline-offset:2px}
+.lesson-format-stepper{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;margin:10px 0 4px;border:1px solid #666;border-radius:9px;overflow:hidden;background:#0d0e12}
+.lesson-format-stepper button{height:48px;border:0;background:#24262b;color:#fff;font-size:27px}
+.lesson-format-stepper button:disabled{opacity:.35;cursor:not-allowed}
+.lesson-format-stepper output{text-align:center;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.lesson-format-custom>small{text-align:center;color:#aaa;margin-bottom:5px}
+.lesson-format-custom .lesson-format-select{margin-top:auto;min-height:48px;font-size:16px}
+.checkout-selected-format{display:flex;justify-content:space-between;gap:12px;padding:13px 0;margin-top:16px;border-top:1px solid #55565e;border-bottom:1px solid #55565e;color:#ccc;font-size:14px}
+.checkout-selected-format strong{color:#fff}
+.checkout-terms{margin-top:16px}
+.checkout .total-row{margin-top:18px}
+.checkout #demoButton{width:100%}
+@media(max-width:760px){
+ .checkout{width:calc(100% - 14px);max-height:calc(100dvh - 14px);padding:18px 14px}
+ .lesson-format-grid{grid-template-columns:1fr}
+ .lesson-format-custom{min-height:0}
+ .lesson-format-packs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .lesson-format-packs .lesson-format-card{padding:12px}
+ .lesson-format-packs .lesson-format-card.is-selected{padding:11px}
+ .lesson-format-packs .lesson-format-card h3{font-size:25px}
+ .lesson-format-packs .lesson-format-card p{font-size:12px}
+ .lesson-format-packs .lesson-format-price{font-size:21px}
+}
+@media(max-width:420px){
+ .lesson-format-packs{grid-template-columns:1fr}
+ .lesson-format-packs .lesson-format-card{padding:15px}
+ .lesson-format-packs .lesson-format-card p{font-size:14px}
+ .lesson-format-packs .lesson-format-price{font-size:25px}
+}
