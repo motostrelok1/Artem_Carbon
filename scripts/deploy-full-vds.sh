@@ -235,6 +235,7 @@ fi
 ln -sfn /etc/nginx/sites-available/artemcarbon.ru /etc/nginx/sites-enabled/artemcarbon.ru
 
 nginx -t
+systemctl reload nginx
 systemctl daemon-reload
 systemctl enable artems-carbon
 systemctl restart artems-carbon
