@@ -1,0 +1,62 @@
+name: Deploy Artem Carbon to VDS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: artem-carbon-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy website, admin and API
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Validate deployment secrets
+        env:
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+          VDS_SSH_KEY: ${{ secrets.VDS_SSH_KEY }}
+          VDS_KNOWN_HOSTS: ${{ secrets.VDS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in VDS_HOST VDS_USER VDS_SSH_KEY VDS_KNOWN_HOSTS; do
+            if [ -z "${!name}" ]; then
+              echo "::error::GitHub Actions secret $name is missing"
+              exit 1
+            fi
+          done
+
+      - name: Configure SSH
+        env:
+          VDS_SSH_KEY: ${{ secrets.VDS_SSH_KEY }}
+          VDS_KNOWN_HOSTS: ${{ secrets.VDS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VDS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VDS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy from main on production VDS
+        env:
+          VDS_HOST: ${{ secrets.VDS_HOST }}
+          VDS_USER: ${{ secrets.VDS_USER }}
+        run: |
+          set -euo pipefail
+          ssh \
+            -i ~/.ssh/id_ed25519 \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "$VDS_USER@$VDS_HOST" \
+            'sudo -n /usr/bin/bash /opt/artems-carbon/repo/scripts/deploy-full-vds.sh'
