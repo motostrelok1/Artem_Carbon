@@ -756,3 +756,15 @@ main{padding-top:var(--site-header-height)}
 .checkout-consent a{color:#fff;text-decoration:underline;text-decoration-color:#f22532;text-underline-offset:3px}
 .checkout-consent a:hover,.checkout-consent a:focus-visible{color:#ff5662}
 #demoButton:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.6)}
+
+/* Confirmed sales counter inside the video lesson checkout dialog. */
+.checkout-sales{margin:18px 0 20px;padding:15px 17px;background:#0b0c10;border:1px solid #45454d;border-left:3px solid var(--red)}
+.checkout-sales-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.checkout-sales-heading>span{font-size:10px;font-weight:900;letter-spacing:2px;color:#c7c7ce}
+.checkout-sales-heading strong{font-size:23px;white-space:nowrap}
+.checkout-sales-heading small{font-size:13px;color:#a6a6ae;font-weight:600}
+.lesson-sales-track{height:9px;border:1px solid #ffffff55;background:#292a30;overflow:hidden;border-radius:8px}
+.lesson-sales-fill{display:block;height:100%;width:0;background:var(--red);transition:width .3s ease}
+.lesson-sales-caption{margin:8px 0 0;color:#aaa;font-size:12px}
+.checkout .close{z-index:2;display:grid;place-items:center;width:42px;height:42px;border:1px solid #ffffff55;background:#24252b;color:#fff;cursor:pointer}
+.checkout .close:hover,.checkout .close:focus-visible{background:var(--red);border-color:var(--red)}
