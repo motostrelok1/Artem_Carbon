@@ -16,7 +16,39 @@ const checkoutPayButton=document.getElementById('demoButton');
 function syncCheckoutConsents(){checkoutPayButton.disabled=!(consentPersonal.checked&&consentMarketing.checked)}
 for(const checkbox of [consentPersonal,consentMarketing])checkbox.addEventListener('change',syncCheckoutConsents);
 syncCheckoutConsents();
-const dlg=document.getElementById('checkout');let qty=1;let checkoutOpener=null;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';function render(){document.getElementById('quantity').textContent=qty;document.getElementById('total').textContent=fmt(qty*2000)}function openCourseCheckout(opener){checkoutOpener=opener;qty=1;render();dlg.showModal();window.refreshLessonSales?.()}function closeCourseCheckout(){if(dlg.open)dlg.close('cancel')}document.getElementById('buyCourse').addEventListener('click',e=>openCourseCheckout(e.currentTarget));document.getElementById('buyCourseDetails')?.addEventListener('click',e=>openCourseCheckout(e.currentTarget));document.getElementById('headerBuyCourse').addEventListener('click',e=>openCourseCheckout(e.currentTarget));document.getElementById('mobileBuyCourse').addEventListener('click',e=>{menu.classList.remove('open');openCourseCheckout(e.currentTarget)});document.getElementById('checkoutClose').addEventListener('click',closeCourseCheckout);dlg.addEventListener('click',e=>{if(e.target===dlg)closeCourseCheckout()});dlg.addEventListener('close',()=>{if(checkoutOpener?.isConnected)checkoutOpener.focus();checkoutOpener=null});document.getElementById('minus').addEventListener('click',()=>{qty=Math.max(1,qty-1);render()});document.getElementById('plus').addEventListener('click',()=>{qty=Math.min(100,qty+1);render()});document.getElementById('demoButton').addEventListener('click',async()=>{
+const dlg=document.getElementById('checkout');let qty=1;let selectedFormat='custom';let checkoutOpener=null;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';
+function render(){
+ const quantity=document.getElementById('quantity');
+ if(quantity)quantity.textContent=qty;
+ document.getElementById('total').textContent=fmt(qty*2000);
+ document.getElementById('customFormatPrice').textContent=fmt(qty*2000);
+ document.getElementById('selectedFormatLabel').textContent=qty.toLocaleString('ru-RU')+' '+(qty===1?'участие':qty<5?'участия':'участий');
+ document.getElementById('minus').disabled=qty<=1;
+ document.getElementById('plus').disabled=qty>=10;
+ document.getElementById('customFormatCard').classList.toggle('is-selected',selectedFormat==='custom');
+ document.querySelectorAll('[data-pack-card]').forEach(card=>card.classList.toggle('is-selected',selectedFormat===card.dataset.packCard));
+}
+function chooseFormat(format){
+ selectedFormat=format;
+ qty=format==='custom'?qty:Number(format);
+ render();
+}
+function openCourseCheckout(opener){checkoutOpener=opener;qty=1;selectedFormat='custom';render();dlg.showModal();window.refreshLessonSales?.()}
+function closeCourseCheckout(){if(dlg.open)dlg.close('cancel')}
+document.getElementById('buyCourse').addEventListener('click',e=>openCourseCheckout(e.currentTarget));
+document.getElementById('buyCourseDetails')?.addEventListener('click',e=>openCourseCheckout(e.currentTarget));
+document.getElementById('headerBuyCourse').addEventListener('click',e=>openCourseCheckout(e.currentTarget));
+document.getElementById('mobileBuyCourse').addEventListener('click',e=>{menu.classList.remove('open');openCourseCheckout(e.currentTarget)});
+document.getElementById('checkoutClose').addEventListener('click',closeCourseCheckout);
+dlg.addEventListener('click',e=>{if(e.target===dlg)closeCourseCheckout()});
+dlg.addEventListener('close',()=>{if(checkoutOpener?.isConnected)checkoutOpener.focus();checkoutOpener=null});
+document.getElementById('minus').addEventListener('click',()=>{selectedFormat='custom';qty=Math.max(1,qty-1);render()});
+document.getElementById('plus').addEventListener('click',()=>{selectedFormat='custom';qty=Math.min(10,qty+1);render()});
+document.querySelectorAll('.lesson-format-select').forEach(button=>button.addEventListener('click',()=>{
+ chooseFormat(button.dataset.format);
+ document.querySelector('.course-buyer-fields').scrollIntoView({behavior:'smooth',block:'start'});
+}));
+document.getElementById('demoButton').addEventListener('click',async()=>{
  if(!consentPersonal.checked||!consentMarketing.checked){syncCheckoutConsents();return;}
 
  const message=document.getElementById('demoMessage');
