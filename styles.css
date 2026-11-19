@@ -883,3 +883,9 @@ main{padding-top:var(--site-header-height)}
  .lesson-first-content .btn{min-height:48px;padding:12px 20px;font-size:12px}
  .hero-footer{bottom:12px;font-size:10px}
 }
+
+
+/* Add breathing room above product photos inside each carousel card. */
+#shop .product-gallery{
+ margin-top:30px;
+}
