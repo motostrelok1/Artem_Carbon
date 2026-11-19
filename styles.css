@@ -841,3 +841,45 @@ main{padding-top:var(--site-header-height)}
  .lesson-first-content h2{font-size:21px}
  .lesson-first-content .actions{margin-top:16px}
 }
+
+
+/* Desktop hero fit: keep the full poster, text, purchase CTA and footer
+   inside the first viewport without clipping. */
+@media(min-width:901px){
+ .lesson-hero{
+  height:calc(100svh - var(--site-header-height));
+  min-height:650px;
+  max-height:none;
+  overflow:hidden;
+ }
+ .lesson-first-wrap{
+  height:100%;
+  min-height:0;
+  padding:24px max(5%,calc((100% - 1440px)/2)) 58px;
+  gap:clamp(22px,3vw,48px);
+  align-items:center;
+ }
+ .lesson-first-poster{
+  height:min(68svh,610px);
+  max-height:calc(100% - 12px);
+ }
+ .lesson-first-content{max-width:680px}
+ .lesson-first-content .eyebrow{margin-bottom:8px;font-size:11px}
+ .lesson-first-content h1{
+  font-size:clamp(58px,5.8vw,92px);
+  line-height:.9;
+  margin:10px 0 12px;
+  letter-spacing:-3px;
+ }
+ .lesson-first-content h2{
+  font-size:clamp(22px,2.05vw,30px);
+  line-height:1.12;
+  margin:8px 0 12px;
+ }
+ .lesson-first-content .hero-copy{font-size:14px;line-height:1.45;margin-bottom:0}
+ .lesson-first-detail{margin-top:15px;padding:10px 0}
+ .lesson-first-detail strong{font-size:clamp(27px,2.5vw,38px)}
+ .lesson-first-content .actions{margin-top:15px}
+ .lesson-first-content .btn{min-height:48px;padding:12px 20px;font-size:12px}
+ .hero-footer{bottom:12px;font-size:10px}
+}
