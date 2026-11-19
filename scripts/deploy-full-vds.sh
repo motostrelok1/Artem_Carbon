@@ -235,11 +235,6 @@ fi
 ln -sfn /etc/nginx/sites-available/artemcarbon.ru /etc/nginx/sites-enabled/artemcarbon.ru
 
 nginx -t
-systemctl reload nginx
-
-ln -sfn /etc/nginx/sites-available/artemcarbon.ru /etc/nginx/sites-enabled/artemcarbon.ru
-nginx -t
-systemctl reload nginx
 systemctl daemon-reload
 systemctl enable artems-carbon
 systemctl restart artems-carbon
@@ -249,5 +244,7 @@ curl -fsS http://127.0.0.1:3002/health
 echo
 test -s "$SITE_DIR/index.html"
 test -s "$SITE_DIR/admin/index.html"
-echo "Full website + admin + API deployed on this VDS over HTTP."
-echo "After DNS A records point to this server, issue TLS for artemcarbon.ru, www.artemcarbon.ru and api.artemcarbon.ru."
+curl -fsS https://artemcarbon.ru/ >/dev/null
+curl -fsS https://api.artemcarbon.ru/health
+echo
+echo "Full website + admin + API deployed on this VDS over HTTPS."
