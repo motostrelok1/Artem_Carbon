@@ -5,7 +5,7 @@ import {catalog,validateCart} from './catalog.js';
 import {validateCourseBuyer} from './buyer-validation.js';
 import {validateCheckoutConsents} from './checkout-consents.js';
 import {buildInit,initPayment,validToken} from './tbank.js';
-import {assignLessonNumbers,voidLessonNumbers} from './lesson-numbers.js';
+import {reserveLessonNumbers,assignLessonNumbers,voidLessonNumbers} from './lesson-numbers.js';
 
 const app=express();
 app.disable('x-powered-by');
@@ -212,6 +212,9 @@ app.post('/api/orders',async(req,res)=>{
   const customer=await client.query('INSERT INTO customers(email) VALUES($1) ON CONFLICT(email) DO UPDATE SET email=EXCLUDED.email RETURNING id',[email]);
   await client.query('INSERT INTO orders(id,customer_id,amount_kopecks) VALUES($1,$2,$3)',[orderId,customer.rows[0].id,item.amount]);
   await client.query('INSERT INTO order_items(order_id,sku,quantity,unit_price_kopecks) VALUES($1,$2,$3,$4)',[orderId,item.sku,item.quantity,item.unitPrice]);
+  // Reserve available scarce serials before T-Bank Init and before the customer
+  // can be charged. Transaction rollback also rolls back these reservations.
+  if(item.sku==='video_lesson')await reserveLessonNumbers(client,orderId,item.quantity);
   if(item.sku==='video_lesson'){
    await client.query(`UPDATE orders SET buyer_last_name=$2,buyer_first_name=$3,buyer_patronymic=$4,buyer_phone=$5,buyer_instagram=$6,
       personal_data_consent_at=NOW(),marketing_email_consent_at=NOW(),
@@ -219,7 +222,10 @@ app.post('/api/orders',async(req,res)=>{
     [orderId,buyer.lastName,buyer.firstName,buyer.patronymic,buyer.phone,buyer.instagram,'draft-2026-11']);
   }
   await client.query('COMMIT');
- }catch(err){await client.query('ROLLBACK');console.error('order insert failed',err);return reject(res,503,'Order unavailable')}
+ }catch(err){await client.query('ROLLBACK');console.error('order insert failed',err);
+  return err.message==='Lesson numbers unavailable'
+   ? reject(res,409,'Insufficient available lesson numbers')
+   : reject(res,503,'Order unavailable')}
  finally{client.release()}
  const name=catalog[item.sku].name;
  const receipt={Email:email,Taxation:process.env.TBANK_TAXATION,Items:[{
@@ -252,7 +258,7 @@ app.post('/api/payments/tbank/notification',async(req,res)=>{
   }
   await client.query('INSERT INTO payment_events(provider_payment_id,status,order_id,payload) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[paymentId,String(event.Status),orderId,event]);
   if(event.Success===true&&event.Status==='CONFIRMED'&&r.rows[0].status==='pending'){
-   // The bank has captured payment; allocate unique numbers before recording it paid.
+   // The bank captured payment; finalize ONLY the pre-existing reservation.
    const lessons=await client.query("SELECT COALESCE(SUM(quantity),0)::integer AS quantity FROM order_items WHERE order_id=$1 AND sku='video_lesson'",[orderId]);
    if(lessons.rows[0].quantity>0)await assignLessonNumbers(client,orderId,lessons.rows[0].quantity);
    await client.query("UPDATE orders SET status='paid',paid_at=NOW() WHERE id=$1",[orderId]);
