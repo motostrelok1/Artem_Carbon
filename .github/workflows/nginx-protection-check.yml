@@ -8,6 +8,8 @@ on:
       - 'config/logrotate/**'
       - 'tests/test_nginx_antiflood.py'
       - '.github/workflows/nginx-protection-check.yml'
+      - '.github/workflows/deploy-vds.yml'
+      - 'tests/test_deploy_bootstrap.py'
   workflow_dispatch:
 
 permissions:
@@ -28,3 +30,4 @@ jobs:
         run: |
           bash -n scripts/deploy-full-vds.sh
           python3 -m unittest discover -s tests -p 'test_nginx_antiflood.py' -v
+          python3 -m unittest discover -s tests -p 'test_deploy_bootstrap.py' -v
