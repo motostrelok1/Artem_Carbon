@@ -82,7 +82,7 @@ class AntiFloodConfigTests(unittest.TestCase):
                 f"pid {tmp / 'nginx.pid'};\n"
                 f"error_log {tmp / 'error.log'} notice;\n"
                 "events { worker_connections 128; }\n"
-                f"http {{ include {tmp / 'zones.conf'}; include {tmp / 'vhost.conf'}; }}\n",
+                f"http {{ access_log {tmp / 'default-access.log'}; include {tmp / 'zones.conf'}; include {tmp / 'vhost.conf'}; }}\n",
                 encoding="utf-8",
             )
             result = subprocess.run([
