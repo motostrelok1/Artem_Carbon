@@ -7,6 +7,7 @@ are written to logs or state. Designed to run under a systemd timer as root.
 import datetime as dt
 import json
 import os
+import sys
 from pathlib import Path
 import re
 import shutil
@@ -190,7 +191,7 @@ def main():
     for key in set(issues) | active_keys:
         incident = issues.setdefault(key, {"bad": 0, "alerted": False})
         if key in problems:
-            incident["bad"] = min(incidence if (incidence := incident.get("bad", 0) + 1) else 1, 10000)
+            incident["bad"] = min(incident.get("bad", 0) + 1, 10000)
             if incident["bad"] >= 2 and not incident.get("alerted", False):
                 message = "🚨 Artem Carbon — ПРОБЛЕМА\n" + problems[key]
                 if telegram_send(message):
@@ -213,4 +214,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) == 2 and sys.argv[1] == "--test-telegram":
+        if telegram_send("✅ Artem Carbon — тест мониторинга Telegram"):
+            print("Telegram test sent")
+        else:
+            print("Telegram test failed; check token, chat ID and outbound access")
+            sys.exit(1)
+    elif len(sys.argv) == 1:
+        main()
+    else:
+        print("Usage: check.py [--test-telegram]", file=sys.stderr)
+        sys.exit(2)
