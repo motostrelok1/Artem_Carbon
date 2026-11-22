@@ -85,9 +85,10 @@ class AntiFloodConfigTests(unittest.TestCase):
                 f"http {{ include {tmp / 'zones.conf'}; include {tmp / 'vhost.conf'}; }}\n",
                 encoding="utf-8",
             )
-            subprocess.run([
+            result = subprocess.run([
                 "nginx", "-t", "-p", str(tmp) + "/", "-c", str(tmp / "nginx.conf")
-            ], check=True, capture_output=True, text=True)
+            ], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
 
 if __name__ == "__main__":
     unittest.main()
