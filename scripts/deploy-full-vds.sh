@@ -201,11 +201,12 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-    # Admin login is measured separately from general API traffic.
+    # Active request-rate protection; connection limits remain observation-only.
+    # Admin login uses a separate, stricter zone from general API traffic.
     # The payment webhook is not rate-limited here: signed bank retries must work.
     location = /api/admin/login {
         limit_req zone=ac_admin_login burst=3;
-        limit_req_dry_run on;
+        limit_req_dry_run off;
         limit_conn ac_api_connections 20;
         limit_conn_dry_run on;
         limit_req_status 429;
@@ -234,7 +235,7 @@ server {
     }
     location ^~ /api/ {
         limit_req zone=ac_api burst=20;
-        limit_req_dry_run on;
+        limit_req_dry_run off;
         limit_conn ac_api_connections 20;
         limit_conn_dry_run on;
         limit_req_status 429;
@@ -291,11 +292,12 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-    # Admin login is measured separately from general API traffic.
+    # Active request-rate protection; connection limits remain observation-only.
+    # Admin login uses a separate, stricter zone from general API traffic.
     # The payment webhook is not rate-limited here: signed bank retries must work.
     location = /api/admin/login {
         limit_req zone=ac_admin_login burst=3;
-        limit_req_dry_run on;
+        limit_req_dry_run off;
         limit_conn ac_api_connections 20;
         limit_conn_dry_run on;
         limit_req_status 429;
@@ -324,7 +326,7 @@ server {
     }
     location ^~ /api/ {
         limit_req zone=ac_api burst=20;
-        limit_req_dry_run on;
+        limit_req_dry_run off;
         limit_conn ac_api_connections 20;
         limit_conn_dry_run on;
         limit_req_status 429;
