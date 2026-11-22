@@ -46,15 +46,15 @@ class AntiFloodConfigTests(unittest.TestCase):
         self.assertEqual(vhost.count("limit_req_status 429;"), 4)
         # Login uses its own location and does not accidentally inherit generic API limits.
         for loc in re.findall(
-            r"location = /api/admin/login \\{(.*?)\\n    \\}", vhost, re.S
+            r"location = /api/admin/login \{(.*?)\n    \}", vhost, re.S
         ):
             self.assertIn("limit_req zone=ac_admin_login burst=3;", loc)
             self.assertNotIn("limit_req zone=ac_api", loc)
         # Unmetered health and ACME remain reachable during bursts.
-        for loc in re.findall(r"location = /health \\{(.*?)\\n    \\}", vhost, re.S):
+        for loc in re.findall(r"location = /health \{(.*?)\n    \}", vhost, re.S):
             self.assertNotIn("limit_req ", loc)
         self.assertNotIn("limit_req ", re.search(
-            r"location \\^~ /\\.well-known/acme-challenge/ \\{(.*?)\\n    \\}", vhost, re.S
+            r"location \^~ /\.well-known/acme-challenge/ \{(.*?)\n    \}", vhost, re.S
         ).group(1))
         self.assertEqual(vhost.count("access_log /var/log/nginx/artemcarbon-antiflood.log ac_antiflood;"), 6)
         self.assertIn("restore_nginx_config", script)
