@@ -79,6 +79,19 @@ class MonitorTests(unittest.TestCase):
                 stored = json.loads(state_path.read_text())
                 self.assertEqual(stored["issues"], {})
 
+    def test_http_spike_alerts_on_first_sample(self):
+        with tempfile.TemporaryDirectory() as td:
+            sent = []
+            with mock.patch.object(monitor, "STATE_PATH", Path(td) / "state.json"), \
+                 mock.patch.object(monitor, "observations",
+                                   return_value={"nginx:429": "HTTP 429 за 5 минут: 27"}), \
+                 mock.patch.object(monitor, "telegram_send",
+                                   side_effect=lambda message: sent.append(message) or True):
+                monitor.main()
+                self.assertEqual(len(sent), 1)
+                monitor.main()
+                self.assertEqual(len(sent), 1)
+
     def test_telegram_without_credentials_makes_no_requests(self):
         with mock.patch.dict(monitor.os.environ, {}, clear=True), \
              mock.patch.object(monitor.urllib.request, "urlopen") as opener:
