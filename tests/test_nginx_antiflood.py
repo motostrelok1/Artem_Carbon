@@ -35,8 +35,27 @@ class AntiFloodConfigTests(unittest.TestCase):
         self.assertEqual(vhost.count("location = /api/payments/tbank/notification {"), 2)
         self.assertEqual(vhost.count("limit_req zone=ac_api burst=20;"), 2)
         self.assertEqual(vhost.count("limit_req zone=ac_admin_login burst=3;"), 2)
-        self.assertEqual(vhost.count("limit_req_dry_run on;"), 4)
+        # Rate limiting is active on the two API routes and two login routes.
+        self.assertEqual(vhost.count("limit_req_dry_run off;"), 4)
+        self.assertNotIn("limit_req_dry_run on;", vhost)
+        # Concurrency limits stay observation-only pending further traffic evidence.
         self.assertEqual(vhost.count("limit_conn_dry_run on;"), 4)
+        self.assertNotIn("limit_conn_dry_run off;", vhost)
+        for name in ("ac_api burst=20", "ac_admin_login burst=3"):
+            self.assertEqual(vhost.count("limit_req zone=" + name + ";"), 2)
+        self.assertEqual(vhost.count("limit_req_status 429;"), 4)
+        # Login uses its own location and does not accidentally inherit generic API limits.
+        for loc in re.findall(
+            r"location = /api/admin/login \\{(.*?)\\n    \\}", vhost, re.S
+        ):
+            self.assertIn("limit_req zone=ac_admin_login burst=3;", loc)
+            self.assertNotIn("limit_req zone=ac_api", loc)
+        # Unmetered health and ACME remain reachable during bursts.
+        for loc in re.findall(r"location = /health \\{(.*?)\\n    \\}", vhost, re.S):
+            self.assertNotIn("limit_req ", loc)
+        self.assertNotIn("limit_req ", re.search(
+            r"location \\^~ /\\.well-known/acme-challenge/ \\{(.*?)\\n    \\}", vhost, re.S
+        ).group(1))
         self.assertEqual(vhost.count("access_log /var/log/nginx/artemcarbon-antiflood.log ac_antiflood;"), 6)
         self.assertIn("restore_nginx_config", script)
         self.assertIn("nginx -t", script)
