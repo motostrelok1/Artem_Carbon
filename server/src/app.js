@@ -256,6 +256,13 @@ app.post('/api/payments/tbank/notification',async(req,res)=>{
   if(!r.rowCount||String(r.rows[0].provider_payment_id)!==paymentId||Number(r.rows[0].amount_kopecks)!==Number(event.Amount)){
    await client.query('ROLLBACK');return reject(res,409,'Payment/order mismatch');
   }
+  if(event.Success===true&&event.Status==='CONFIRMED'&&r.rows[0].status==='cancelled'){
+   // A payment confirmation for an order that reconciliation already closed
+   // requires manual bank reconciliation/refund; never silently acknowledge.
+   await client.query('ROLLBACK');
+   console.error('CRITICAL: paid notification for cancelled order',orderId);
+   return reject(res,409,'Manual payment reconciliation required');
+  }
   await client.query('INSERT INTO payment_events(provider_payment_id,status,order_id,payload) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[paymentId,String(event.Status),orderId,event]);
   if(event.Success===true&&event.Status==='CONFIRMED'&&r.rows[0].status==='pending'){
    // The bank captured payment; finalize ONLY the pre-existing reservation.
