@@ -43,6 +43,17 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   ]){
    await db.query(await readFile(new URL('../sql/'+file,import.meta.url),'utf8'));
   }
+  // Reapplying the additive migration must be safe on a populated schema.
+  for(const migration of ['006_pre_payment_reservations.sql','007_reservation_reconciliation.sql']){
+   await db.query(await readFile(new URL('../sql/'+migration,import.meta.url),'utf8'));
+  }
+  const migrationShape=await db.query(`SELECT
+   (SELECT COUNT(*)::int FROM information_schema.columns
+     WHERE table_schema='public' AND table_name='lesson_number_pool'
+       AND column_name IN ('reserved_order_id','reserved_at','reservation_expires_at')) AS reservation_columns,
+   to_regclass('public.lesson_reservation_release_audit') IS NOT NULL AS has_audit`);
+  assert.equal(migrationShape.rows[0].reservation_columns,3,'reservation migration columns exist');
+  assert.equal(migrationShape.rows[0].has_audit,true,'audit migration table exists');
   await listen();
   const bankPort=mockBank.address().port;
   const port=39771;
