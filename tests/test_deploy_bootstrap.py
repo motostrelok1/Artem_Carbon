@@ -11,10 +11,11 @@ WORKFLOW = ROOT / ".github/workflows/deploy-vds.yml"
 class DeployBootstrapTests(unittest.TestCase):
     def test_checkout_precedes_exec_and_shell_is_valid(self):
         text = WORKFLOW.read_text(encoding="utf-8")
-        self.assertIn("git -c safe.directory=\"$repo\" -C \"$repo\" fetch --depth=1 origin main", text)
-        self.assertIn("git -c safe.directory=\"$repo\" -C \"$repo\" checkout -f FETCH_HEAD", text)
-        self.assertIn("exec /usr/bin/bash \"$repo/scripts/deploy-full-vds.sh\"", text)
-        self.assertLess(text.index("checkout -f FETCH_HEAD"), text.index("exec /usr/bin/bash"))
+        invocation = "sudo -n /usr/bin/bash /opt/artems-carbon/repo/scripts/deploy-full-vds.sh"
+        self.assertEqual(text.count(invocation), 2)
+        self.assertNotIn("sudo -n /usr/bin/bash -c", text)
+        # First run updates the repository with the legacy script; second
+        # starts the script from the updated checkout using existing sudoers.
         # The last run: block is the SSH deployment command. Validate actual Bash quoting.
         command = textwrap.dedent(text.rsplit("        run: |\n", 1)[1])
         result = subprocess.run(

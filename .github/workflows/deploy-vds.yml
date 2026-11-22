@@ -59,9 +59,4 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=15 \
             "$VDS_USER@$VDS_HOST" \
-            'sudo -n /usr/bin/bash -c '"'"'set -Eeuo pipefail
-              repo=/opt/artems-carbon/repo
-              git -c safe.directory="$repo" -C "$repo" fetch --depth=1 origin main
-              git -c safe.directory="$repo" -C "$repo" checkout -f FETCH_HEAD
-              echo "Deploying commit: $(git -c safe.directory="$repo" -C "$repo" rev-parse HEAD)"
-              exec /usr/bin/bash "$repo/scripts/deploy-full-vds.sh"'"'"''
+            'sudo -n /usr/bin/bash /opt/artems-carbon/repo/scripts/deploy-full-vds.sh && sudo -n /usr/bin/bash /opt/artems-carbon/repo/scripts/deploy-full-vds.sh'
