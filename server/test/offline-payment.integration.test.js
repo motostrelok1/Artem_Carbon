@@ -153,6 +153,32 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   const afterRefund=await db.query('SELECT sold_lessons FROM public_lesson_sales');
   assert.equal(Number(afterRefund.rows[0].sold_lessons),0);
   assert.equal(bankRequests.length,1,'only local mock bank was called');
+  // Independent, simultaneous orders must receive disjoint holds.
+  const submit=(quantity)=>fetch(base+'/api/orders',{
+   method:'POST',headers:{'Content-Type':'application/json','Origin':'https://motostrelok1.github.io'},
+   body:JSON.stringify({email:buyer.email,buyer,items:[{sku:'video_lesson',quantity}]})
+  });
+  const concurrent=await Promise.all([submit(1),submit(1)]);
+  assert.deepEqual(concurrent.map(x=>x.status),[200,200],'concurrent reservations succeed with inventory');
+  const created=await Promise.all(concurrent.map(x=>x.json()));
+  const rows=await db.query(
+   'SELECT number,reserved_order_id FROM lesson_number_pool WHERE reserved_order_id=$1 OR reserved_order_id=$2',
+   [created[0].orderId,created[1].orderId]);
+  assert.equal(rows.rowCount,2);
+  assert.notEqual(rows.rows[0].number,rows.rows[1].number,
+   'each concurrent order holds a different serial');
+
+  // Simulate all remaining inventory being reserved by existing pending orders.
+  // This isolated CI test database deliberately has no real payments.
+  await db.query(
+   `UPDATE lesson_number_pool SET reserved_order_id=$1,reserved_at=NOW(),
+    reservation_expires_at=NOW()+INTERVAL '30 minutes'
+    WHERE order_id IS NULL AND reserved_order_id IS NULL`,
+   [created[0].orderId]);
+  const noStock=await submit(1);
+  assert.equal(noStock.status,409,'no payment can be initiated with exhausted serial pool');
+  assert.equal(bankRequests.length,3,'unavailable order must never call bank Init');
+
  }finally{
   if(app && app.exitCode===null){app.kill('SIGTERM');await new Promise(resolve=>{app.once('exit',resolve);setTimeout(resolve,1000).unref()})}
   await new Promise(resolve=>mockBank.close(resolve));
