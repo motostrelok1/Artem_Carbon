@@ -37,7 +37,8 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   await db.query("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='artems_app') THEN CREATE ROLE artems_app; END IF; END $$");
   for(const file of [
    '001_sales.sql','002_email_outbox.sql','003_course_buyer.sql',
-   '004_lesson_numbers.sql','005_checkout_consents.sql'
+   '004_lesson_numbers.sql','005_checkout_consents.sql',
+   '006_pre_payment_reservations.sql'
   ]){
    await db.query(await readFile(new URL('../sql/'+file,import.meta.url),'utf8'));
   }
@@ -91,7 +92,11 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   assert.equal(bankRequests[0].Receipt.Taxation,'usn_income');
   assert.equal(bankRequests[0].Receipt.Items[0].Tax,'none');
   const before=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE order_id IS NOT NULL');
-  assert.equal(before.rows[0].n,0,'Init does not allocate serials');
+  assert.equal(before.rows[0].n,0,'Init does not assign paid serials');
+  const prepayment=await db.query('SELECT number FROM lesson_number_pool WHERE reserved_order_id=$1 ORDER BY number',[orderId]);
+  assert.equal(prepayment.rowCount,2,'Init reserves 2 numbers before the bank can capture funds');
+  const allReservations=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE reserved_order_id IS NOT NULL');
+  assert.equal(allReservations.rows[0].n,2);
   const pending=await db.query('SELECT status FROM orders WHERE id=$1',[orderId]);
   assert.equal(pending.rows[0].status,'pending');
 
@@ -111,6 +116,10 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   assert.equal(paid.rows[0].status,'paid');
   const assigned=await db.query('SELECT number FROM lesson_number_pool WHERE order_id=$1 ORDER BY number',[orderId]);
   assert.equal(assigned.rowCount,2);
+  assert.deepEqual(assigned.rows.map(x=>x.number),prepayment.rows.map(x=>x.number),
+   'CONFIRMED finalizes original reservation; no newly allocated numbers');
+  const remainingReservations=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE reserved_order_id=$1',[orderId]);
+  assert.equal(remainingReservations.rows[0].n,0,'reservation is cleared on confirmation');
   assert.notEqual(assigned.rows[0].number,assigned.rows[1].number);
   assert.ok(assigned.rows.every(x=>x.number>=1&&x.number<=9500));
   const count=await db.query('SELECT sold_lessons FROM public_lesson_sales');
