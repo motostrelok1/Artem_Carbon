@@ -1,0 +1,30 @@
+name: Validate Artem Carbon Nginx protection
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/deploy-full-vds.sh'
+      - 'config/nginx/**'
+      - 'config/logrotate/**'
+      - 'tests/test_nginx_antiflood.py'
+      - '.github/workflows/nginx-protection-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nginx-syntax:
+    name: Nginx syntax and route safeguards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nginx and OpenSSL for isolated syntax test
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq nginx openssl
+      - name: Validate deployment script and Nginx protection
+        run: |
+          bash -n scripts/deploy-full-vds.sh
+          python3 -m unittest discover -s tests -p 'test_nginx_antiflood.py' -v
