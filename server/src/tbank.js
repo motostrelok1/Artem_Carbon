@@ -30,3 +30,23 @@ export async function initPayment(payload,baseUrl,fetcher=fetch){
  if(result.Success!==true||typeof result.PaymentURL!=='string'||!/^https:\/\//.test(result.PaymentURL)||!result.PaymentId)throw new Error('T-Bank Init failed');
  return result;
 }
+
+/**
+ * Read-only status inquiry. A request timeout or malformed response must not
+ * release a held serial number; the reconciliation worker fails closed.
+ */
+export async function getPaymentState({terminalKey,password,paymentId,endpoint},fetcher=fetch){
+ if(!terminalKey||!password||!paymentId||!endpoint)throw new Error('GetState configuration incomplete');
+ const payload={TerminalKey:terminalKey,PaymentId:String(paymentId)};
+ payload.Token=createToken(payload,password);
+ const response=await fetcher(endpoint.replace(/\/$/,'')+'/GetState',{
+  method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(payload),signal:AbortSignal.timeout(10000)
+ });
+ if(!response.ok)throw new Error('GetState request failed');
+ const state=await response.json();
+ if(state.Success!==true||String(state.PaymentId)!==String(paymentId)||
+    typeof state.Status!=='string')
+  throw new Error('GetState response not authoritative');
+ return state;
+}
