@@ -116,6 +116,44 @@ CERT_DIR="/etc/letsencrypt/live/artemcarbon.ru"
 }
 install -d -o root -g root -m 0755 /var/www/letsencrypt
 
+# Stage the http-context rate-limit zones from the tracked repository.
+# The nginx.conf on Ubuntu includes /etc/nginx/conf.d/*.conf inside http {}.
+# Safe rollout: dry-run rules never reject clients due to request/connection limits.
+ANTI_DDOS_SOURCE="$REPO_DIR/config/nginx/artemcarbon-antiflood.conf"
+LOGROTATE_SOURCE="$REPO_DIR/config/logrotate/artemcarbon-antiflood"
+ANTI_DDOS_TARGET="/etc/nginx/conf.d/artemcarbon-antiflood.conf"
+LOGROTATE_TARGET="/etc/logrotate.d/artemcarbon-antiflood"
+VHOST_TARGET="/etc/nginx/sites-available/artemcarbon.ru"
+[[ -s "$ANTI_DDOS_SOURCE" && -s "$LOGROTATE_SOURCE" ]] || {
+  echo "Anti-flood config is missing from the repository." >&2; exit 1;
+}
+if ! nginx -T 2>&1 | grep -Fq '/etc/nginx/conf.d/'; then
+  echo "Nginx does not appear to load /etc/nginx/conf.d; refusing unsafe deployment." >&2
+  exit 1
+fi
+
+NGINX_PREVIOUS="$(mktemp -d /tmp/artemcarbon-nginx.XXXXXXXX)"
+for target in "$ANTI_DDOS_TARGET" "$LOGROTATE_TARGET" "$VHOST_TARGET"; do
+  base="$(basename "$target")"
+  if [[ -f "$target" ]]; then
+    cp -p "$target" "$NGINX_PREVIOUS/$base"
+  fi
+done
+restore_nginx_config() {
+  for target in "$ANTI_DDOS_TARGET" "$LOGROTATE_TARGET" "$VHOST_TARGET"; do
+    base="$(basename "$target")"
+    if [[ -f "$NGINX_PREVIOUS/$base" ]]; then
+      cp -p "$NGINX_PREVIOUS/$base" "$target"
+    else
+      rm -f "$target"
+    fi
+  done
+  nginx -t && systemctl reload nginx || true
+}
+install -o root -g root -m 0644 "$ANTI_DDOS_SOURCE" "$ANTI_DDOS_TARGET"
+install -o root -g root -m 0644 "$LOGROTATE_SOURCE" "$LOGROTATE_TARGET"
+
+
 cat > /etc/nginx/sites-available/artemcarbon.ru <<'NGINX'
 # HTTP: allow ACME HTTP-01 challenges and redirect all other traffic to HTTPS.
 server {
@@ -163,7 +201,46 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+    # Admin login is measured separately from general API traffic.
+    # The payment webhook is not rate-limited here: signed bank retries must work.
+    location = /api/admin/login {
+        limit_req zone=ac_admin_login burst=3;
+        limit_req_dry_run on;
+        limit_conn ac_api_connections 20;
+        limit_conn_dry_run on;
+        limit_req_status 429;
+        limit_conn_status 429;
+        client_max_body_size 128k;
+        access_log /var/log/nginx/artemcarbon-antiflood.log ac_antiflood;
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+    location = /api/payments/tbank/notification {
+        # Preserve notification retries; webhook signature is verified by the API.
+        client_max_body_size 128k;
+        access_log /var/log/nginx/artemcarbon-antiflood.log ac_antiflood;
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
     location ^~ /api/ {
+        limit_req zone=ac_api burst=20;
+        limit_req_dry_run on;
+        limit_conn ac_api_connections 20;
+        limit_conn_dry_run on;
+        limit_req_status 429;
+        limit_conn_status 429;
+        client_max_body_size 128k;
+        access_log /var/log/nginx/artemcarbon-antiflood.log ac_antiflood;
         proxy_pass http://127.0.0.1:3002;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -214,7 +291,46 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+    # Admin login is measured separately from general API traffic.
+    # The payment webhook is not rate-limited here: signed bank retries must work.
+    location = /api/admin/login {
+        limit_req zone=ac_admin_login burst=3;
+        limit_req_dry_run on;
+        limit_conn ac_api_connections 20;
+        limit_conn_dry_run on;
+        limit_req_status 429;
+        limit_conn_status 429;
+        client_max_body_size 128k;
+        access_log /var/log/nginx/artemcarbon-antiflood.log ac_antiflood;
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+    location = /api/payments/tbank/notification {
+        # Preserve notification retries; webhook signature is verified by the API.
+        client_max_body_size 128k;
+        access_log /var/log/nginx/artemcarbon-antiflood.log ac_antiflood;
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
     location ^~ /api/ {
+        limit_req zone=ac_api burst=20;
+        limit_req_dry_run on;
+        limit_conn ac_api_connections 20;
+        limit_conn_dry_run on;
+        limit_req_status 429;
+        limit_conn_status 429;
+        client_max_body_size 128k;
+        access_log /var/log/nginx/artemcarbon-antiflood.log ac_antiflood;
         proxy_pass http://127.0.0.1:3002;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
@@ -234,8 +350,19 @@ if [[ -L /etc/nginx/sites-enabled/api.artemcarbon.ru ]]; then
 fi
 ln -sfn /etc/nginx/sites-available/artemcarbon.ru /etc/nginx/sites-enabled/artemcarbon.ru
 
-nginx -t
-systemctl reload nginx
+if ! nginx -t; then
+  echo "Nginx configuration validation failed. Restoring previous config." >&2
+  restore_nginx_config
+  rm -rf "$NGINX_PREVIOUS"
+  exit 1
+fi
+if ! systemctl reload nginx; then
+  echo "Nginx reload failed. Restoring previous config." >&2
+  restore_nginx_config
+  rm -rf "$NGINX_PREVIOUS"
+  exit 1
+fi
+rm -rf "$NGINX_PREVIOUS"
 systemctl daemon-reload
 systemctl enable artems-carbon
 systemctl restart artems-carbon
