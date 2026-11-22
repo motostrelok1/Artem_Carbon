@@ -10,6 +10,9 @@ on:
       - '.github/workflows/nginx-protection-check.yml'
       - '.github/workflows/deploy-vds.yml'
       - 'tests/test_deploy_bootstrap.py'
+      - 'tests/test_security_monitoring.py'
+      - 'config/fail2ban/**'
+      - 'scripts/security-status.sh'
   workflow_dispatch:
 
 permissions:
@@ -31,3 +34,4 @@ jobs:
           bash -n scripts/deploy-full-vds.sh
           python3 -m unittest discover -s tests -p 'test_nginx_antiflood.py' -v
           python3 -m unittest discover -s tests -p 'test_deploy_bootstrap.py' -v
+          python3 -m unittest discover -s tests -p 'test_security_monitoring.py' -v
