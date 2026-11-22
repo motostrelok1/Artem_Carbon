@@ -61,8 +61,8 @@ class MonitorTests(unittest.TestCase):
                 messages.append(message)
                 return True
 
-            with mock.patch.object(monitor, "STATE_PATH", state_path), \\
-                 mock.patch.object(monitor, "observations", side_effect=fake_observations), \\
+            with mock.patch.object(monitor, "STATE_PATH", state_path), \
+                 mock.patch.object(monitor, "observations", side_effect=fake_observations), \
                  mock.patch.object(monitor, "telegram_send", side_effect=fake_telegram):
                 monitor.main()
                 self.assertEqual(messages, [])
@@ -80,7 +80,7 @@ class MonitorTests(unittest.TestCase):
                 self.assertEqual(stored["issues"], {})
 
     def test_telegram_without_credentials_makes_no_requests(self):
-        with mock.patch.dict(monitor.os.environ, {}, clear=True), \\
+        with mock.patch.dict(monitor.os.environ, {}, clear=True), \
              mock.patch.object(monitor.urllib.request, "urlopen") as opener:
             self.assertFalse(monitor.telegram_send("test"))
             opener.assert_not_called()
