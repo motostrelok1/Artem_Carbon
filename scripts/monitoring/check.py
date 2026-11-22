@@ -259,7 +259,7 @@ def main():
                     print("Alert pending (email/Telegram not configured or unavailable):", key)
         else:
             if incident.get("alerted", False):
-                if telegram_send("✅ Artem Carbon — ВОССТАНОВЛЕНО\n" + key):
+                if alert_send("✅ Artem Carbon — ВОССТАНОВЛЕНО\n" + key):
                     issues.pop(key, None)
                     print("Recovery sent:", key)
                 else:
