@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Artem Carbon read-only host checks with deduplicated Telegram alerts.
+"""Artem Carbon read-only host checks with deduplicated email / Telegram alerts.
 
-Standard library only; no passwords, buyer IPs, request paths or Telegram tokens
+Standard library only; no passwords, buyer IPs, request paths or notification tokens
 are written to logs or state. Designed to run under a systemd timer as root.
 """
 import datetime as dt
 import json
+from email.message import EmailMessage
+import smtplib
+import ssl
 import os
 import sys
 from pathlib import Path
@@ -143,6 +146,58 @@ def telegram_send(message):
         return False
 
 
+
+def email_send(message):
+    """SMTP with verified TLS; no secrets or detailed exceptions in logs.
+
+    Only explicit configuration enables sending. Prefer SMTPS (465) or
+    STARTTLS (587); refuse unauthenticated plaintext delivery.
+    """
+    host = os.getenv("ARTEM_MONITOR_SMTP_HOST", "").strip()
+    username = os.getenv("ARTEM_MONITOR_SMTP_USER", "").strip()
+    password = os.getenv("ARTEM_MONITOR_SMTP_PASSWORD", "")
+    sender = os.getenv("ARTEM_MONITOR_SMTP_FROM", "").strip()
+    recipient = os.getenv("ARTEM_MONITOR_EMAIL_TO", "motostrelok@yandex.ru").strip()
+    try:
+        port = int(os.getenv("ARTEM_MONITOR_SMTP_PORT", "465"))
+    except ValueError:
+        return False
+    if not all((host, username, password, sender, recipient)) or port not in (465, 587):
+        return False
+
+    subject = ("[Artem Carbon] Восстановление" if "ВОССТАНОВЛЕНО" in message
+               else "[Artem Carbon] Аварийное уведомление")
+    letter = EmailMessage()
+    letter["From"] = sender
+    letter["To"] = recipient
+    letter["Subject"] = subject
+    letter.set_content(message, charset="utf-8")
+    context = ssl.create_default_context()
+    try:
+        if port == 465:
+            with smtplib.SMTP_SSL(host, port, timeout=10, context=context) as client:
+                client.login(username, password)
+                client.send_message(letter)
+        else:
+            with smtplib.SMTP(host, port, timeout=10) as client:
+                client.ehlo()
+                client.starttls(context=context)
+                client.ehlo()
+                client.login(username, password)
+                client.send_message(letter)
+        return True
+    except (OSError, smtplib.SMTPException, ssl.SSLError, ValueError):
+        # Exceptions may include credentials or private transport details.
+        return False
+
+
+def alert_send(message):
+    """Email is primary. Fall back to Telegram only when email fails."""
+    if email_send(message):
+        return True
+    return telegram_send(message)
+
+
 def observations(now, state):
     problems = {}
     for service in SERVICES:
@@ -197,11 +252,11 @@ def main():
             required_checks = 1 if key in IMMEDIATE_ALERT_KEYS else 2
             if incident["bad"] >= required_checks and not incident.get("alerted", False):
                 message = "🚨 Artem Carbon — ПРОБЛЕМА\n" + problems[key]
-                if telegram_send(message):
+                if alert_send(message):
                     incident["alerted"] = True
                     print("Alert sent:", key)
                 else:
-                    print("Alert pending (Telegram not configured or unavailable):", key)
+                    print("Alert pending (email/Telegram not configured or unavailable):", key)
         else:
             if incident.get("alerted", False):
                 if telegram_send("✅ Artem Carbon — ВОССТАНОВЛЕНО\n" + key):
@@ -217,7 +272,13 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2 and sys.argv[1] == "--test-telegram":
+    if len(sys.argv) == 2 and sys.argv[1] == "--test-email":
+        if email_send("✅ Artem Carbon — тест мониторинга Email"):
+            print("Email test sent")
+        else:
+            print("Email test failed; check SMTP settings and outbound access")
+            sys.exit(1)
+    elif len(sys.argv) == 2 and sys.argv[1] == "--test-telegram":
         if telegram_send("✅ Artem Carbon — тест мониторинга Telegram"):
             print("Telegram test sent")
         else:
@@ -226,5 +287,5 @@ if __name__ == "__main__":
     elif len(sys.argv) == 1:
         main()
     else:
-        print("Usage: check.py [--test-telegram]", file=sys.stderr)
+        print("Usage: check.py [--test-email | --test-telegram]", file=sys.stderr)
         sys.exit(2)
