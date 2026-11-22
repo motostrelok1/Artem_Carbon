@@ -1,0 +1,20 @@
+[Unit]
+Description=Artem Carbon health and security monitoring
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=-/etc/artemcarbon-monitor.env
+ExecStart=/usr/bin/python3 /usr/local/libexec/artemcarbon-monitor/check.py
+StateDirectory=artemcarbon-monitor
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/artemcarbon-monitor
+TimeoutStartSec=90

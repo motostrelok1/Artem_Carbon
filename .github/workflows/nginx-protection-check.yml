@@ -13,6 +13,9 @@ on:
       - 'tests/test_security_monitoring.py'
       - 'config/fail2ban/**'
       - 'scripts/security-status.sh'
+      - 'scripts/monitoring/**'
+      - 'config/systemd/**'
+      - 'tests/test_monitoring_alerts.py'
   workflow_dispatch:
 
 permissions:
@@ -35,3 +38,4 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_nginx_antiflood.py' -v
           python3 -m unittest discover -s tests -p 'test_deploy_bootstrap.py' -v
           python3 -m unittest discover -s tests -p 'test_security_monitoring.py' -v
+          python3 -m unittest discover -s tests -p 'test_monitoring_alerts.py' -v

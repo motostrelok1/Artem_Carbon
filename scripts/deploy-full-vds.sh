@@ -377,4 +377,26 @@ test -s "$SITE_DIR/admin/index.html"
 curl -fsS https://artemcarbon.ru/ >/dev/null
 curl -fsS https://api.artemcarbon.ru/health
 echo
+
+# Monitoring is read-only. This enables the timer without altering firewall,
+# Fail2ban or payment routes. Telegram credentials are configured separately
+# in root-owned /etc/artemcarbon-monitor.env (never stored in Git).
+MONITOR_SOURCE="$REPO_DIR/scripts/monitoring/check.py"
+MONITOR_SERVICE_SOURCE="$REPO_DIR/config/systemd/artemcarbon-monitor.service"
+MONITOR_TIMER_SOURCE="$REPO_DIR/config/systemd/artemcarbon-monitor.timer"
+[[ -s "$MONITOR_SOURCE" && -s "$MONITOR_SERVICE_SOURCE" && -s "$MONITOR_TIMER_SOURCE" ]] || {
+  echo "Monitoring deployment assets are missing." >&2; exit 1;
+}
+python3 -m py_compile "$MONITOR_SOURCE"
+install -d -o root -g root -m 0755 /usr/local/libexec/artemcarbon-monitor
+install -o root -g root -m 0644 "$MONITOR_SOURCE" /usr/local/libexec/artemcarbon-monitor/check.py
+install -o root -g root -m 0644 "$MONITOR_SERVICE_SOURCE" /etc/systemd/system/artemcarbon-monitor.service
+install -o root -g root -m 0644 "$MONITOR_TIMER_SOURCE" /etc/systemd/system/artemcarbon-monitor.timer
+systemctl daemon-reload
+systemctl enable --now artemcarbon-monitor.timer
+systemctl restart artemcarbon-monitor.timer
+systemctl is-active --quiet artemcarbon-monitor.timer || {
+  echo "Monitoring timer failed to start." >&2; exit 1;
+}
+echo "Artem Carbon monitoring timer enabled (every 5 minutes). Telegram requires root-owned /etc/artemcarbon-monitor.env."
 echo "Full website + admin + API deployed on this VDS over HTTPS."
