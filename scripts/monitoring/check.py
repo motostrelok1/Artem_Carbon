@@ -31,6 +31,8 @@ MAX_SSH_NEW_BANS = 10
 MAX_MEMORY_PERCENT = 90
 MAX_DISK_PERCENT = 85
 MAX_LOG_LINES = 15000
+# Short spikes are ephemeral: react on the first qualifying 5-minute sample.
+IMMEDIATE_ALERT_KEYS = frozenset(("nginx:5xx", "nginx:429", "sshd:bans"))
 
 
 def command(*args):
@@ -192,7 +194,8 @@ def main():
         incident = issues.setdefault(key, {"bad": 0, "alerted": False})
         if key in problems:
             incident["bad"] = min(incident.get("bad", 0) + 1, 10000)
-            if incident["bad"] >= 2 and not incident.get("alerted", False):
+            required_checks = 1 if key in IMMEDIATE_ALERT_KEYS else 2
+            if incident["bad"] >= required_checks and not incident.get("alerted", False):
                 message = "🚨 Artem Carbon — ПРОБЛЕМА\n" + problems[key]
                 if telegram_send(message):
                     incident["alerted"] = True
