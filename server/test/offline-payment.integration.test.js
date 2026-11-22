@@ -6,6 +6,7 @@ import {spawn} from 'node:child_process';
 import pg from 'pg';
 import {createToken,validToken} from '../src/tbank.js';
 import {purchaseMessage} from '../src/email-template.js';
+import {reconcileReservations} from '../src/reservation-reconciler.js';
 
 const dbUrl=process.env.TEST_DATABASE_URL;
 test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, duplicate and refund', {
@@ -38,7 +39,7 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   for(const file of [
    '001_sales.sql','002_email_outbox.sql','003_course_buyer.sql',
    '004_lesson_numbers.sql','005_checkout_consents.sql',
-   '006_pre_payment_reservations.sql'
+   '006_pre_payment_reservations.sql','007_reservation_reconciliation.sql'
   ]){
    await db.query(await readFile(new URL('../sql/'+file,import.meta.url),'utf8'));
   }
@@ -178,6 +179,45 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   const noStock=await submit(1);
   assert.equal(noStock.status,409,'no payment can be initiated with exhausted serial pool');
   assert.equal(bankRequests.length,3,'unavailable order must never call bank Init');
+
+  // Expiration alone is insufficient: pending bank payments remain reserved.
+  const secondOrder=created[1].orderId;
+  await db.query(
+   "UPDATE lesson_number_pool SET reservation_expires_at=NOW()-INTERVAL '1 minute' WHERE reserved_order_id=$1",
+   [secondOrder]);
+  const bankState={Success:true,Status:'NEW',OrderId:secondOrder,
+   PaymentId:'offline-3',TerminalKey:'offline-terminal',Amount:200000};
+  const fetchState=async(_url,opts)=>({
+   ok:true,json:async()=>({...bankState,PaymentId:JSON.parse(opts.body).PaymentId})
+  });
+  const reconcile=()=>reconcileReservations({pool:db,terminalKey:'offline-terminal',
+   password:'CI-only-secret',endpoint:'http://127.0.0.1:1/v2',
+   fetcher:fetchState,logger:{error(){}}});
+  const untouched=await reconcile();
+  assert.ok(untouched.some(x=>x.orderId===secondOrder&&x.released===0),
+   'NEW payment cannot release stale reservation');
+  const stillHeld=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE reserved_order_id=$1',[secondOrder]);
+  assert.equal(stillHeld.rows[0].n,1);
+
+  // Wrong bank identity must fail closed even if status claims CANCELED.
+  bankState.Status='CANCELED';bankState.Amount=1;
+  const mismatch=await reconcile();
+  assert.ok(mismatch.some(x=>x.orderId===secondOrder&&x.released===0),
+   'GetState amount mismatch never releases');
+  bankState.Amount=200000;
+  // The bank's FINAL cancellation authorizes a single audited release.
+  const safelyReleased=await reconcile();
+  assert.ok(safelyReleased.some(x=>x.orderId===secondOrder&&x.released===1));
+  const cancelled=await db.query('SELECT status FROM orders WHERE id=$1',[secondOrder]);
+  assert.equal(cancelled.rows[0].status,'cancelled');
+  const audit=await db.query('SELECT bank_status,released_quantity FROM lesson_reservation_release_audit WHERE order_id=$1',[secondOrder]);
+  assert.equal(audit.rowCount,1);
+  assert.equal(audit.rows[0].bank_status,'CANCELED');
+  assert.equal(audit.rows[0].released_quantity,1);
+  const doubleRelease=await reconcile();
+  assert.ok(!doubleRelease.some(x=>x.orderId===secondOrder),
+   'a cancelled order never enters reconciliation again');
+
 
  }finally{
   if(app && app.exitCode===null){app.kill('SIGTERM');await new Promise(resolve=>{app.once('exit',resolve);setTimeout(resolve,1000).unref()})}
