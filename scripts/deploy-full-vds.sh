@@ -127,7 +127,7 @@ VHOST_TARGET="/etc/nginx/sites-available/artemcarbon.ru"
 [[ -s "$ANTI_DDOS_SOURCE" && -s "$LOGROTATE_SOURCE" ]] || {
   echo "Anti-flood config is missing from the repository." >&2; exit 1;
 }
-if ! nginx -T 2>&1 | grep -Fq '/etc/nginx/conf.d/'; then
+if ! nginx -T 2>&1 | grep -F '/etc/nginx/conf.d/' >/dev/null; then
   echo "Nginx does not appear to load /etc/nginx/conf.d; refusing unsafe deployment." >&2
   exit 1
 fi
