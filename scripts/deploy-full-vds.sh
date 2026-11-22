@@ -379,7 +379,7 @@ curl -fsS https://api.artemcarbon.ru/health
 echo
 
 # Monitoring is read-only. This enables the timer without altering firewall,
-# Fail2ban or payment routes. Telegram credentials are configured separately
+# Fail2ban or payment routes. Notification credentials are configured separately
 # in root-owned /etc/artemcarbon-monitor.env (never stored in Git).
 MONITOR_SOURCE="$REPO_DIR/scripts/monitoring/check.py"
 MONITOR_SERVICE_SOURCE="$REPO_DIR/config/systemd/artemcarbon-monitor.service"
@@ -398,5 +398,5 @@ systemctl restart artemcarbon-monitor.timer
 systemctl is-active --quiet artemcarbon-monitor.timer || {
   echo "Monitoring timer failed to start." >&2; exit 1;
 }
-echo "Artem Carbon monitoring timer enabled (every 5 minutes). Telegram requires root-owned /etc/artemcarbon-monitor.env."
+echo "Artem Carbon monitoring timer enabled (every 5 minutes). Email/Telegram credentials require root-owned /etc/artemcarbon-monitor.env."
 echo "Full website + admin + API deployed on this VDS over HTTPS."

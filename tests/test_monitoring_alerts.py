@@ -63,7 +63,7 @@ class MonitorTests(unittest.TestCase):
 
             with mock.patch.object(monitor, "STATE_PATH", state_path), \
                  mock.patch.object(monitor, "observations", side_effect=fake_observations), \
-                 mock.patch.object(monitor, "telegram_send", side_effect=fake_telegram):
+                 mock.patch.object(monitor, "alert_send", side_effect=fake_telegram):
                 monitor.main()
                 self.assertEqual(messages, [])
                 monitor.main()
@@ -85,7 +85,7 @@ class MonitorTests(unittest.TestCase):
             with mock.patch.object(monitor, "STATE_PATH", Path(td) / "state.json"), \
                  mock.patch.object(monitor, "observations",
                                    return_value={"nginx:429": "HTTP 429 за 5 минут: 27"}), \
-                 mock.patch.object(monitor, "telegram_send",
+                 mock.patch.object(monitor, "alert_send",
                                    side_effect=lambda message: sent.append(message) or True):
                 monitor.main()
                 self.assertEqual(len(sent), 1)
@@ -97,6 +97,51 @@ class MonitorTests(unittest.TestCase):
              mock.patch.object(monitor.urllib.request, "urlopen") as opener:
             self.assertFalse(monitor.telegram_send("test"))
             opener.assert_not_called()
+
+    def test_email_disabled_without_credentials(self):
+        with mock.patch.dict(monitor.os.environ, {}, clear=True), \
+             mock.patch.object(monitor.smtplib, "SMTP_SSL") as transport:
+            self.assertFalse(monitor.email_send("test"))
+            transport.assert_not_called()
+
+    def test_email_is_primary_and_does_not_duplicate_to_telegram(self):
+        with mock.patch.object(monitor, "email_send", return_value=True), \
+             mock.patch.object(monitor, "telegram_send") as telegram:
+            self.assertTrue(monitor.alert_send("incident"))
+            telegram.assert_not_called()
+
+    def test_telegram_fallback_only_if_email_fails(self):
+        with mock.patch.object(monitor, "email_send", return_value=False), \
+             mock.patch.object(monitor, "telegram_send", return_value=True) as telegram:
+            self.assertTrue(monitor.alert_send("incident"))
+            telegram.assert_called_once_with("incident")
+
+    def test_smtp_ssl_authentication_and_yandex_destination(self):
+        with mock.patch.dict(monitor.os.environ, {
+            "ARTEM_MONITOR_SMTP_HOST": "smtp.mail.ru",
+            "ARTEM_MONITOR_SMTP_PORT": "465",
+            "ARTEM_MONITOR_SMTP_USER": "monitor@example.com",
+            "ARTEM_MONITOR_SMTP_PASSWORD": "fake_password",
+            "ARTEM_MONITOR_SMTP_FROM": "monitor@example.com",
+            "ARTEM_MONITOR_EMAIL_TO": "motostrelok@yandex.ru",
+        }, clear=True), mock.patch.object(monitor.smtplib, "SMTP_SSL") as transport:
+            self.assertTrue(monitor.email_send("🚨 Artem Carbon — ПРОБЛЕМА"))
+            server = transport.return_value.__enter__.return_value
+            server.login.assert_called_once_with("monitor@example.com", "fake_password")
+            mail = server.send_message.call_args.args[0]
+            self.assertEqual(mail["To"], "motostrelok@yandex.ru")
+            self.assertIn("Аварийное", str(mail["Subject"]))
+
+    def test_reject_plain_smtp_port(self):
+        with mock.patch.dict(monitor.os.environ, {
+            "ARTEM_MONITOR_SMTP_HOST": "smtp.mail.ru",
+            "ARTEM_MONITOR_SMTP_PORT": "25",
+            "ARTEM_MONITOR_SMTP_USER": "u",
+            "ARTEM_MONITOR_SMTP_PASSWORD": "p",
+            "ARTEM_MONITOR_SMTP_FROM": "u@example.com",
+        }, clear=True), mock.patch.object(monitor.smtplib, "SMTP") as transport:
+            self.assertFalse(monitor.email_send("test"))
+            transport.assert_not_called()
 
     def test_no_customer_addresses_in_alert_messages(self):
         source = SCRIPT.read_text(encoding="utf-8")
