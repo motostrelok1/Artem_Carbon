@@ -1,0 +1,11 @@
+[Unit]
+Description=Check expired Artem Carbon reservations against bank every 10 minutes
+
+[Timer]
+OnBootSec=10min
+OnUnitInactiveSec=10min
+AccuracySec=30s
+Unit=artems-carbon-reconcile.service
+
+[Install]
+WantedBy=timers.target
