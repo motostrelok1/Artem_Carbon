@@ -2,7 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-const read = path => readFile(new URL(path, import.meta.url), 'utf8');
+// In CI the admin assets live next to server/ in the repository.
+// On the VDS they are deployed to /opt/artems-carbon/site/admin/;
+// /opt/artems-carbon/admin/ may contain stale files from older deployments.
+// Prefer the actual deployed site to avoid false failures and stale checks.
+const read = async path => {
+ if(path.startsWith('../../admin/')){
+  const livePath='../../site/admin/'+path.slice('../../admin/'.length);
+  try{return await readFile(new URL(livePath,import.meta.url),'utf8')}
+  catch(error){if(error.code!=='ENOENT')throw error}
+ }
+ return readFile(new URL(path,import.meta.url),'utf8');
+};
 
 test('admin panel uses server-side session and has no demo password fallback', async()=>{
  const html=await read('../../admin/index.html');
