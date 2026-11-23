@@ -15,7 +15,7 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
 }, async()=>{
  const db=new pg.Pool({connectionString:dbUrl,max:3});
  const bankRequests=[];
- let counter=0;
+ let counter=0;let rejectNextInit=false;
  const mockBank=createServer(async(req,res)=>{
   try{
    if(req.method!=='POST'||req.url!=='/v2/Init'){res.writeHead(404).end();return}
@@ -24,6 +24,7 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
    const payload=JSON.parse(Buffer.concat(parts).toString('utf8'));
    bankRequests.push(payload);
    if(!validToken(payload,'CI-only-secret')){res.writeHead(400).end();return}
+   if(rejectNextInit){rejectNextInit=false;res.writeHead(503).end('mock Init unavailable');return}
    res.setHeader('Content-Type','application/json');
    res.end(JSON.stringify({
     Success:true,PaymentId:'offline-'+(++counter),
@@ -185,6 +186,26 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   assert.notEqual(rows.rows[0].number,rows.rows[1].number,
    'each concurrent order holds a different serial');
 
+  // A bank /Init error can mean a lost response; preserve the reservation
+  // and surface the order ID to customer support without inventing a cancellation.
+  rejectNextInit=true;
+  const unknown=await submit(1);
+  assert.equal(unknown.status,503,'uncertain bank Init is not reported as paid');
+  const {orderId:unknownOrderId}=await unknown.json();
+  assert.match(unknownOrderId,/^[0-9a-f-]{36}$/i);
+  const unresolved=await db.query(
+   "SELECT status,provider_payment_id FROM orders WHERE id=$1",[unknownOrderId]);
+  assert.equal(unresolved.rows[0].status,'pending');
+  assert.equal(unresolved.rows[0].provider_payment_id,null);
+  const unknownHold=await db.query(
+   'SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE reserved_order_id=$1',[unknownOrderId]);
+  assert.equal(unknownHold.rows[0].n,1,'unknown Init never releases held number');
+  await db.query(
+   "UPDATE orders SET created_at=NOW()-INTERVAL '5 minutes' WHERE id=$1",[unknownOrderId]);
+  const toReview=await db.query(
+   "SELECT COUNT(*)::int AS n FROM orders WHERE status='pending' AND provider_payment_id IS NULL AND created_at < NOW()-INTERVAL '2 minutes'");
+  assert.equal(toReview.rows[0].n,1,'admin overview must count unresolved Init');
+
   // Simulate all remaining inventory being reserved by existing pending orders.
   // This isolated CI test database deliberately has no real payments.
   await db.query(
@@ -194,7 +215,7 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
    [created[0].orderId]);
   const noStock=await submit(1);
   assert.equal(noStock.status,409,'no payment can be initiated with exhausted serial pool');
-  assert.equal(bankRequests.length,3,'unavailable order must never call bank Init');
+  assert.equal(bankRequests.length,4,'unavailable order must never call bank Init');
 
   // Expiration alone is insufficient: pending bank payments remain reserved.
   const secondOrder=created[1].orderId;

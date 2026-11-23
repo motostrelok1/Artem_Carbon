@@ -4,7 +4,12 @@ async function createPayment(sku,quantity,email,buyer=null){
  const endpoint=new URL('/api/orders',ARTEMS_API);
  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify({items:[{sku,quantity}],email,...(buyer?{buyer}:{})})});
- if(!res.ok)throw new Error(res.status===503?'Платежи пока недоступны':'Не удалось создать заказ');
+ if(!res.ok){
+  const problem=await res.json().catch(()=>null);
+  if(problem?.orderId)
+   throw new Error('Статус создания платежа неизвестен. Код заказа: '+problem.orderId+'. Свяжитесь с поддержкой и не повторяйте оплату до проверки.');
+  throw new Error(res.status===503?'Платежи пока недоступны':'Не удалось создать заказ');
+ }
  const data=await res.json();
  const url=new URL(data.paymentUrl);
  if(url.protocol!=='https:')throw new Error('Некорректная ссылка банка');
