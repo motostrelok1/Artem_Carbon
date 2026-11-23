@@ -199,11 +199,11 @@ app.post('/api/orders',async(req,res)=>{
  if(!enabled)return reject(res,503,'Payments not enabled');
  if(req.headers.origin!==origin)return reject(res,403,'Forbidden origin');
  if(!config.terminal||!config.password||!serverOrigin||!process.env.TBANK_TAXATION||!process.env.TBANK_ITEM_TAX)return reject(res,503,'Payment configuration incomplete');
- let buyer=null;
+ let buyer=null;let consents=null;
  if(Array.isArray(req.body?.items)&&req.body.items[0]?.sku==='video_lesson'){
   try{
    buyer=validateCourseBuyer(req.body?.buyer);
-   validateCheckoutConsents(req.body?.buyer);
+   consents=validateCheckoutConsents(req.body?.buyer);
   }catch(err){return reject(res,400,err.message)}
  }
  const email=buyer?.email||String(req.body?.email||'').trim().toLowerCase();
@@ -220,9 +220,10 @@ app.post('/api/orders',async(req,res)=>{
   if(item.sku==='video_lesson')await reserveLessonNumbers(client,orderId,item.quantity);
   if(item.sku==='video_lesson'){
    await client.query(`UPDATE orders SET buyer_last_name=$2,buyer_first_name=$3,buyer_patronymic=$4,buyer_phone=$5,buyer_instagram=$6,
-      personal_data_consent_at=NOW(),marketing_email_consent_at=NOW(),
+      personal_data_consent_at=NOW(),
+      marketing_email_consent_at=CASE WHEN $8::boolean THEN NOW() ELSE NULL END,
       consent_policy_version=$7 WHERE id=$1`,
-    [orderId,buyer.lastName,buyer.firstName,buyer.patronymic,buyer.phone,buyer.instagram,'draft-2026-11']);
+    [orderId,buyer.lastName,buyer.firstName,buyer.patronymic,buyer.phone,buyer.instagram,'draft-2026-11',consents.marketingConsent]);
   }
   await client.query('COMMIT');
  }catch(err){await client.query('ROLLBACK');console.error('order insert failed',err);
