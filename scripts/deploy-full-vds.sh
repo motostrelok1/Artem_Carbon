@@ -418,4 +418,22 @@ systemctl is-active --quiet artems-carbon-mail.timer || {
 }
 echo "Buyer email timer installed (one queued email per minute; EMAIL_ENABLED controls sending)."
 
+# Scheduled bank reconciliation is safely skipped until both payment and
+# reconciliation flags are explicitly enabled. In particular, the timer does
+# NOT release numbers on elapsed TTL without bank-confirmed final cancellation.
+RECONCILE_SERVICE_SOURCE="$REPO_DIR/config/systemd/artems-carbon-reconcile.service"
+RECONCILE_TIMER_SOURCE="$REPO_DIR/config/systemd/artems-carbon-reconcile.timer"
+[[ -s "$RECONCILE_SERVICE_SOURCE" && -s "$RECONCILE_TIMER_SOURCE" ]] || {
+  echo "Reservation reconciliation unit files are missing." >&2; exit 1;
+}
+install -o root -g root -m 0644 "$RECONCILE_SERVICE_SOURCE" /etc/systemd/system/artems-carbon-reconcile.service
+install -o root -g root -m 0644 "$RECONCILE_TIMER_SOURCE" /etc/systemd/system/artems-carbon-reconcile.timer
+systemctl daemon-reload
+systemctl enable --now artems-carbon-reconcile.timer
+systemctl restart artems-carbon-reconcile.timer
+systemctl is-active --quiet artems-carbon-reconcile.timer || {
+  echo "Reservation reconciliation timer failed to start." >&2; exit 1;
+}
+echo "Reservation reconciliation timer installed; guarded by PAYMENTS_ENABLED and RECONCILIATION_ENABLED."
+
 echo "Full website + admin + API deployed on this VDS over HTTPS."
