@@ -87,7 +87,7 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   const buyer={
    lastName:'Иванов',firstName:'Иван',patronymic:'Иванович',
    phone:'+7 (999) 123-45-67',email:'buyer@example.org',instagram:'@artems_carbon',
-   personalConsent:true,marketingConsent:true
+   personalConsent:true,marketingConsent:false
   };
   const create=await fetch(base+'/api/orders',{
    method:'POST',headers:{'Content-Type':'application/json','Origin':'https://motostrelok1.github.io'},
@@ -111,6 +111,11 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   assert.equal(allReservations.rows[0].n,2);
   const pending=await db.query('SELECT status FROM orders WHERE id=$1',[orderId]);
   assert.equal(pending.rows[0].status,'pending');
+  const storedConsents=await db.query(
+   'SELECT personal_data_consent_at,marketing_email_consent_at FROM orders WHERE id=$1',[orderId]);
+  assert.ok(storedConsents.rows[0].personal_data_consent_at,'required consent has timestamp');
+  assert.equal(storedConsents.rows[0].marketing_email_consent_at,null,
+   'declined marketing opt-in is NOT recorded as consent');
 
   const event={
    TerminalKey:'offline-terminal',PaymentId:'offline-1',OrderId:orderId,
