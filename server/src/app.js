@@ -6,6 +6,8 @@ import {validateCourseBuyer} from './buyer-validation.js';
 import {validateCheckoutConsents} from './checkout-consents.js';
 import {buildInit,initPayment,validToken} from './tbank.js';
 import {reserveLessonNumbers,assignLessonNumbers,voidLessonNumbers} from './lesson-numbers.js';
+import {createReadStream,readFileSync,statSync} from 'node:fs';
+import {lessonDeliveryReady,lessonVideoPath,verifyLessonLink,makeLessonSessionCookie,verifyLessonSession,parseVideoRange} from './lesson-access.js';
 
 const app=express();
 app.disable('x-powered-by');
@@ -282,5 +284,86 @@ app.post('/api/payments/tbank/notification',async(req,res)=>{
  }catch(err){await client.query('ROLLBACK');console.error('webhook failed',err);reject(res,503,'Temporary processing error')}
  finally{client.release()}
 });
+
+// Private paid-lesson delivery. The video must live OUTSIDE the public Nginx site root.
+// Access links contain a signed grant in the URL fragment, never sent in HTTP requests.
+const lessonWatchJs=readFileSync(new URL('../static/lesson-watch.js',import.meta.url),'utf8');
+const lessonWatchHtml=[
+ '<!doctype html><html lang="ru"><head><meta charset="utf-8">',
+ '<meta name="viewport" content="width=device-width,initial-scale=1">',
+ '<title>Видеоурок — Artem Carbon</title>',
+ '<style>body{margin:0;background:#101014;color:#fff;font:16px Arial,sans-serif}',
+ 'main{max-width:840px;margin:8vh auto;padding:24px}',
+ 'h1{font-size:28px}video{width:100%;background:#000;border-radius:12px}',
+ 'p{line-height:1.5;color:#ddd}a{color:#ff7780}</style></head>',
+ '<body><main><h1>ARTEM CARBON — ваш видеоурок</h1>',
+ '<p id="lessonStatus" role="status">Проверяем доступ…</p>',
+ '<video id="lessonVideo" controls controlslist="nodownload" playsinline preload="metadata" hidden></video>',
+ '<p>Ссылка предназначена покупателю. Если доступ не открывается, свяжитесь с организатором.</p>',
+ '</main><script src="/api/lesson/watch.js" defer></script></body></html>'
+].join('');
+function privateLessonHeaders(res){
+ res.set('Cache-Control','private, no-store');
+ res.set('Referrer-Policy','no-referrer');
+ res.set('X-Content-Type-Options','nosniff');
+}
+async function hasPaidLesson(orderId){
+ const r=await pool.query("SELECT 1 FROM orders o JOIN order_items i ON i.order_id=o.id WHERE o.id=$1 AND o.status='paid' AND i.sku='video_lesson' LIMIT 1",[orderId]);
+ return r.rowCount===1;
+}
+app.get('/api/lesson/watch',(req,res)=>{
+ privateLessonHeaders(res);
+ res.set('Content-Security-Policy',"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; media-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
+ res.type('html').send(lessonWatchHtml);
+});
+app.get('/api/lesson/watch.js',(req,res)=>{
+ privateLessonHeaders(res);
+ res.type('application/javascript').send(lessonWatchJs);
+});
+app.post('/api/lesson/start',async(req,res)=>{
+ privateLessonHeaders(res);
+ if(!lessonDeliveryReady())return reject(res,503,'Lesson not published');
+ if(req.headers.origin&&req.headers.origin!==new URL(process.env.API_PUBLIC_URL).origin)
+  return reject(res,403,'Forbidden origin');
+ const order=typeof req.body?.order==='string'?req.body.order:'';
+ const token=typeof req.body?.token==='string'?req.body.token:'';
+ if(!verifyLessonLink(order,token))return reject(res,403,'Invalid lesson link');
+ try{
+  if(!await hasPaidLesson(order))return reject(res,403,'Lesson unavailable');
+  res.set('Set-Cookie',makeLessonSessionCookie(order));
+  res.json({ok:true});
+ }catch(error){console.error('Lesson access unavailable',error.name);reject(res,503,'Lesson unavailable')}
+});
+app.get('/api/lesson/media',async(req,res)=>{
+ privateLessonHeaders(res);
+ const order=typeof req.query.order==='string'?req.query.order:'';
+ if(!verifyLessonSession(req.headers.cookie,order))return reject(res,401,'Lesson access required');
+ if(!lessonDeliveryReady())return reject(res,503,'Lesson not published');
+ try{
+  if(!await hasPaidLesson(order))return reject(res,403,'Lesson unavailable');
+  const path=lessonVideoPath(),info=statSync(path);
+  let range;
+  try{range=parseVideoRange(req.headers.range,info.size)}
+  catch{
+   res.set('Content-Range','bytes */'+info.size);
+   return reject(res,416,'Invalid byte range');
+  }
+  const {start,end,partial}=range;
+  res.status(partial?206:200);
+  res.set('Content-Type','video/mp4');
+  res.set('Accept-Ranges','bytes');
+  res.set('Content-Length',String(end-start+1));
+  res.set('X-Accel-Buffering','no');
+  if(partial)res.set('Content-Range','bytes '+start+'-'+end+'/'+info.size);
+  const stream=createReadStream(path,{start,end});
+  stream.on('error',error=>{
+   console.error('Lesson media stream failed',error.name);
+   if(!res.headersSent)res.status(503).end();
+   else res.destroy();
+  });
+  stream.pipe(res);
+ }catch(error){console.error('Lesson media unavailable',error.name);reject(res,503,'Lesson unavailable')}
+});
+
 const port=Number(process.env.PORT)||3002;
 app.listen(port,'127.0.0.1',()=>console.log('ARTEMS CARBON API listening on localhost:'+port+'; payments '+(enabled?'enabled':'disabled')));
