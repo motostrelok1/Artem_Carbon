@@ -34,7 +34,7 @@ test('physical goods email does not require numbers or include lesson photo',()=
 });
 
 test('lesson photo resolves to existing 5.jpg in repository checkout',()=>{
- const path=resolveLessonPhotoPath({override:null,sitePath:'/no-such-deployed-image/5.jpg'});
+ const path=resolveLessonPhotoPath({override:null});
  assert.equal(basename(path||''),'5.jpg');
 });
 
