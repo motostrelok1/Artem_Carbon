@@ -154,6 +154,7 @@ app.get('/api/admin/system',adminAuth,(req,res)=>{
  res.json({paymentsEnabled:enabled,emailEnabled:process.env.EMAIL_ENABLED==='true',
   bankConfigured:Boolean(config.terminal&&config.password),apiConfigured:Boolean(serverOrigin),
   fiscalizationConfigured:Boolean(process.env.TBANK_TAXATION&&process.env.TBANK_ITEM_TAX),
+  lessonDeliveryReady:lessonDeliveryReady(),
   editableSettings:false});
 });
 app.get('/api/admin/email-status',adminAuth,async(req,res)=>{
