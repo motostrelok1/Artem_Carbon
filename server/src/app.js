@@ -109,6 +109,8 @@ app.get('/api/admin/overview',adminAuth,async(req,res)=>{
           (SELECT COUNT(DISTINCT customer_id)::int FROM orders WHERE status='paid') AS customers,
           (SELECT COALESCE(SUM(amount_kopecks),0)::bigint FROM orders WHERE status='paid') AS revenue_kopecks,
           (SELECT COUNT(*)::int FROM orders WHERE status='pending') AS pending_orders,
+          (SELECT COUNT(*)::int FROM orders WHERE status='pending'
+            AND provider_payment_id IS NULL AND created_at < NOW()-INTERVAL '2 minutes') AS payment_id_unconfirmed,
           (SELECT COUNT(*)::int FROM orders WHERE status='refunded') AS refunded_orders,
           (SELECT sold_lessons FROM public_lesson_sales) AS sold_lessons,
           (SELECT COUNT(*)::int FROM email_outbox WHERE state IN ('queued','sending','failed')) AS email_pending
@@ -132,6 +134,8 @@ app.get('/api/admin/orders',adminAuth,async(req,res)=>{
       o.buyer_last_name,o.buyer_first_name,o.buyer_patronymic,
       o.buyer_phone,o.buyer_instagram,
       o.personal_data_consent_at,o.marketing_email_consent_at,o.consent_policy_version,
+      (o.status='pending' AND o.provider_payment_id IS NULL AND
+       o.created_at < NOW()-INTERVAL '2 minutes') AS bank_review_required,
       COALESCE((SELECT json_agg(json_build_object('sku',i.sku,'quantity',i.quantity,
       'unitPriceKopecks',i.unit_price_kopecks::text)) FROM order_items i WHERE i.order_id=o.id),'[]'::json) AS items,
       COALESCE((SELECT array_agg(p.number ORDER BY p.number) FROM lesson_number_pool p
@@ -245,7 +249,13 @@ app.post('/api/orders',async(req,res)=>{
   const payment=await initPayment(payload,config.endpoint);
   await pool.query('UPDATE orders SET provider_payment_id=$2 WHERE id=$1',[orderId,String(payment.PaymentId)]);
   res.json({orderId,paymentUrl:payment.PaymentURL});
- }catch(err){console.error('payment init failed',err);reject(res,503,'Payment provider unavailable')}
+ }catch(err){
+  // /Init may have succeeded at the bank even if its response (or the DB write)
+  // failed. Keep the reservation and give support a traceable order ID.
+  // NEVER free the serials based on timeout or on this exception.
+  console.error('Payment Init result uncertain; bank check required',orderId,err.name);
+  res.status(503).json({error:'Payment initiation unconfirmed',orderId});
+ }
 });
 app.post('/api/payments/tbank/notification',async(req,res)=>{
  if(!enabled)return reject(res,503,'Payments not enabled');
