@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {purchaseMessage} from '../src/email-template.js';
+import {resolveLessonPhotoPath} from '../src/mail-photo.js';
+import {basename} from 'node:path';
 test('purchase email includes correct quantity and amount',()=>{
  const message=purchaseMessage({id:'12345678-1234-1234-1234-123456789012',email:'customer@example.org',
   amount_kopecks:600000,items:[{sku:'video_lesson',quantity:3,unit_price_kopecks:200000}],lessonNumbers:[147,3821,9076],hasLessonPhoto:true});
@@ -29,4 +31,16 @@ test('physical goods email does not require numbers or include lesson photo',()=
  items:[{sku:'carbon_knife',quantity:1,unit_price_kopecks:1000000}]});
  assert.doesNotMatch(mail.html,/Номера ваших видеоуроков/);
  assert.doesNotMatch(mail.html,/cid:artems-lesson-photo/);
+});
+
+test('lesson photo resolves to existing 5.jpg in repository checkout',()=>{
+ const path=resolveLessonPhotoPath({override:null,sitePath:'/no-such-deployed-image/5.jpg'});
+ assert.equal(basename(path||''),'5.jpg');
+});
+
+test('receipt footer does not promise unavailable fiscalization',()=>{
+ const message=purchaseMessage({id:'12345678-1234-1234-1234-123456789012',email:'customer@example.org',
+  amount_kopecks:200000,items:[{sku:'video_lesson',quantity:1,unit_price_kopecks:200000}],lessonNumbers:[6362]});
+ assert.match(message.html,/6362/);
+ assert.doesNotMatch(message.html,/Электронный кассовый чек отправляется через настроенную фискализацию/);
 });

@@ -1,4 +1,4 @@
-import {existsSync} from 'node:fs';
+import {resolveLessonPhotoPath} from './mail-photo.js';
 import pg from 'pg';
 import nodemailer from 'nodemailer';
 import {purchaseMessage} from './email-template.js';
@@ -41,13 +41,13 @@ async function processOne(){
   const serials=hasLessons?await pool.query(
    'SELECT number FROM lesson_number_pool WHERE order_id=$1 AND voided_at IS NULL ORDER BY number',
    [job.order_id]):{rows:[]};
-  const photoPath=new URL('../../5.jpeg',import.meta.url);
-  const hasLessonPhoto=hasLessons&&existsSync(photoPath);
+  const photoPath=hasLessons?resolveLessonPhotoPath():null;
+  const hasLessonPhoto=Boolean(photoPath);
   const message=purchaseMessage({...r.rows[0],amount_kopecks:Number(r.rows[0].amount_kopecks),
    items:details.rows.map(x=>({...x,unit_price_kopecks:Number(x.unit_price_kopecks)})),
    lessonNumbers:serials.rows.map(x=>x.number),hasLessonPhoto});
   if(hasLessonPhoto)message.attachments=[{
-   filename:'5.jpeg',path:photoPath.pathname,cid:'artems-lesson-photo',
+   filename:'5.jpg',path:photoPath,cid:'artems-lesson-photo',
    contentType:'image/jpeg',contentDisposition:'inline'
   }];
   // Stable Message-ID: retry-safe for clients that deduplicate, but not a
