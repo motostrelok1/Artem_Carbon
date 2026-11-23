@@ -6,6 +6,7 @@ import {spawn} from 'node:child_process';
 import pg from 'pg';
 import {createToken,validToken} from '../src/tbank.js';
 import {purchaseMessage} from '../src/email-template.js';
+import {reconcileReservations} from '../src/reservation-reconciler.js';
 
 const dbUrl=process.env.TEST_DATABASE_URL;
 test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, duplicate and refund', {
@@ -37,10 +38,22 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   await db.query("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='artems_app') THEN CREATE ROLE artems_app; END IF; END $$");
   for(const file of [
    '001_sales.sql','002_email_outbox.sql','003_course_buyer.sql',
-   '004_lesson_numbers.sql','005_checkout_consents.sql'
+   '004_lesson_numbers.sql','005_checkout_consents.sql',
+   '006_pre_payment_reservations.sql','007_reservation_reconciliation.sql'
   ]){
    await db.query(await readFile(new URL('../sql/'+file,import.meta.url),'utf8'));
   }
+  // Reapplying the additive migration must be safe on a populated schema.
+  for(const migration of ['006_pre_payment_reservations.sql','007_reservation_reconciliation.sql']){
+   await db.query(await readFile(new URL('../sql/'+migration,import.meta.url),'utf8'));
+  }
+  const migrationShape=await db.query(`SELECT
+   (SELECT COUNT(*)::int FROM information_schema.columns
+     WHERE table_schema='public' AND table_name='lesson_number_pool'
+       AND column_name IN ('reserved_order_id','reserved_at','reservation_expires_at')) AS reservation_columns,
+   to_regclass('public.lesson_reservation_release_audit') IS NOT NULL AS has_audit`);
+  assert.equal(migrationShape.rows[0].reservation_columns,3,'reservation migration columns exist');
+  assert.equal(migrationShape.rows[0].has_audit,true,'audit migration table exists');
   await listen();
   const bankPort=mockBank.address().port;
   const port=39771;
@@ -91,7 +104,11 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   assert.equal(bankRequests[0].Receipt.Taxation,'usn_income');
   assert.equal(bankRequests[0].Receipt.Items[0].Tax,'none');
   const before=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE order_id IS NOT NULL');
-  assert.equal(before.rows[0].n,0,'Init does not allocate serials');
+  assert.equal(before.rows[0].n,0,'Init does not assign paid serials');
+  const prepayment=await db.query('SELECT number FROM lesson_number_pool WHERE reserved_order_id=$1 ORDER BY number',[orderId]);
+  assert.equal(prepayment.rowCount,2,'Init reserves 2 numbers before the bank can capture funds');
+  const allReservations=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE reserved_order_id IS NOT NULL');
+  assert.equal(allReservations.rows[0].n,2);
   const pending=await db.query('SELECT status FROM orders WHERE id=$1',[orderId]);
   assert.equal(pending.rows[0].status,'pending');
 
@@ -111,6 +128,10 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   assert.equal(paid.rows[0].status,'paid');
   const assigned=await db.query('SELECT number FROM lesson_number_pool WHERE order_id=$1 ORDER BY number',[orderId]);
   assert.equal(assigned.rowCount,2);
+  assert.deepEqual(assigned.rows.map(x=>x.number),prepayment.rows.map(x=>x.number),
+   'CONFIRMED finalizes original reservation; no newly allocated numbers');
+  const remainingReservations=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE reserved_order_id=$1',[orderId]);
+  assert.equal(remainingReservations.rows[0].n,0,'reservation is cleared on confirmation');
   assert.notEqual(assigned.rows[0].number,assigned.rows[1].number);
   assert.ok(assigned.rows.every(x=>x.number>=1&&x.number<=9500));
   const count=await db.query('SELECT sold_lessons FROM public_lesson_sales');
@@ -144,6 +165,71 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   const afterRefund=await db.query('SELECT sold_lessons FROM public_lesson_sales');
   assert.equal(Number(afterRefund.rows[0].sold_lessons),0);
   assert.equal(bankRequests.length,1,'only local mock bank was called');
+  // Independent, simultaneous orders must receive disjoint holds.
+  const submit=(quantity)=>fetch(base+'/api/orders',{
+   method:'POST',headers:{'Content-Type':'application/json','Origin':'https://motostrelok1.github.io'},
+   body:JSON.stringify({email:buyer.email,buyer,items:[{sku:'video_lesson',quantity}]})
+  });
+  const concurrent=await Promise.all([submit(1),submit(1)]);
+  assert.deepEqual(concurrent.map(x=>x.status),[200,200],'concurrent reservations succeed with inventory');
+  const created=await Promise.all(concurrent.map(x=>x.json()));
+  const rows=await db.query(
+   'SELECT number,reserved_order_id FROM lesson_number_pool WHERE reserved_order_id=$1 OR reserved_order_id=$2',
+   [created[0].orderId,created[1].orderId]);
+  assert.equal(rows.rowCount,2);
+  assert.notEqual(rows.rows[0].number,rows.rows[1].number,
+   'each concurrent order holds a different serial');
+
+  // Simulate all remaining inventory being reserved by existing pending orders.
+  // This isolated CI test database deliberately has no real payments.
+  await db.query(
+   `UPDATE lesson_number_pool SET reserved_order_id=$1,reserved_at=NOW(),
+    reservation_expires_at=NOW()+INTERVAL '30 minutes'
+    WHERE order_id IS NULL AND reserved_order_id IS NULL`,
+   [created[0].orderId]);
+  const noStock=await submit(1);
+  assert.equal(noStock.status,409,'no payment can be initiated with exhausted serial pool');
+  assert.equal(bankRequests.length,3,'unavailable order must never call bank Init');
+
+  // Expiration alone is insufficient: pending bank payments remain reserved.
+  const secondOrder=created[1].orderId;
+  await db.query(
+   "UPDATE lesson_number_pool SET reservation_expires_at=NOW()-INTERVAL '1 minute' WHERE reserved_order_id=$1",
+   [secondOrder]);
+  const bankState={Success:true,Status:'NEW',OrderId:secondOrder,
+   PaymentId:'offline-3',TerminalKey:'offline-terminal',Amount:200000};
+  const fetchState=async(_url,opts)=>({
+   ok:true,json:async()=>({...bankState,PaymentId:JSON.parse(opts.body).PaymentId})
+  });
+  const reconcile=()=>reconcileReservations({pool:db,terminalKey:'offline-terminal',
+   password:'CI-only-secret',endpoint:'http://127.0.0.1:1/v2',
+   fetcher:fetchState,logger:{error(){}}});
+  const untouched=await reconcile();
+  assert.ok(untouched.some(x=>x.orderId===secondOrder&&x.released===0),
+   'NEW payment cannot release stale reservation');
+  const stillHeld=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE reserved_order_id=$1',[secondOrder]);
+  assert.equal(stillHeld.rows[0].n,1);
+
+  // Wrong bank identity must fail closed even if status claims CANCELED.
+  bankState.Status='CANCELED';bankState.Amount=1;
+  const mismatch=await reconcile();
+  assert.ok(mismatch.some(x=>x.orderId===secondOrder&&x.released===0),
+   'GetState amount mismatch never releases');
+  bankState.Amount=200000;
+  // The bank's FINAL cancellation authorizes a single audited release.
+  const safelyReleased=await reconcile();
+  assert.ok(safelyReleased.some(x=>x.orderId===secondOrder&&x.released===1));
+  const cancelled=await db.query('SELECT status FROM orders WHERE id=$1',[secondOrder]);
+  assert.equal(cancelled.rows[0].status,'cancelled');
+  const audit=await db.query('SELECT bank_status,released_quantity FROM lesson_reservation_release_audit WHERE order_id=$1',[secondOrder]);
+  assert.equal(audit.rowCount,1);
+  assert.equal(audit.rows[0].bank_status,'CANCELED');
+  assert.equal(audit.rows[0].released_quantity,1);
+  const doubleRelease=await reconcile();
+  assert.ok(!doubleRelease.some(x=>x.orderId===secondOrder),
+   'a cancelled order never enters reconciliation again');
+
+
  }finally{
   if(app && app.exitCode===null){app.kill('SIGTERM');await new Promise(resolve=>{app.once('exit',resolve);setTimeout(resolve,1000).unref()})}
   await new Promise(resolve=>mockBank.close(resolve));
