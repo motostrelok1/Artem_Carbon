@@ -43,3 +43,13 @@ test('admin interface renders external data as text, not HTML', async()=>{
  assert.match(js,/createElement/);
  assert.doesNotMatch(js,/\.innerHTML\s*=/);
 });
+
+test('unknown bank Init outcomes are visible to admin, not auto-released',async()=>{
+ const js=await read('../../admin/admin.js');
+ const api=await read('../src/app.js');
+ assert.match(api,/payment_id_unconfirmed/);
+ assert.match(api,/bank_review_required/);
+ assert.match(api,/Payment initiation unconfirmed/);
+ assert.match(js,/Нужна сверка с банком/);
+ assert.match(js,/Не освобождать номера автоматически/);
+});
