@@ -21,6 +21,8 @@ install -d -o artems-carbon -g artems-carbon -m 0750 "$APP_ROOT"
 # Nginx (www-data) must traverse APP_ROOT to read the public static site,
 # but must not be able to list the application root.
 chmod 0711 "$APP_ROOT"
+# Store the paid lesson outside public Nginx root. Deployment never overwrites media.
+install -d -o root -g artems-carbon -m 0750 "$APP_ROOT/private-media"
 if [[ -d "$REPO_DIR/.git" ]]; then
   git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" fetch --depth=1 origin "$BRANCH"
   git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" checkout -f FETCH_HEAD
