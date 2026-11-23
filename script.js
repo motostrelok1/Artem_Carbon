@@ -13,8 +13,8 @@ async function createPayment(sku,quantity,email,buyer=null){
 const consentPersonal=document.getElementById('coursePersonalConsent');
 const consentMarketing=document.getElementById('courseMarketingConsent');
 const checkoutPayButton=document.getElementById('demoButton');
-function syncCheckoutConsents(){checkoutPayButton.disabled=!(consentPersonal.checked&&consentMarketing.checked)}
-for(const checkbox of [consentPersonal,consentMarketing])checkbox.addEventListener('change',syncCheckoutConsents);
+function syncCheckoutConsents(){checkoutPayButton.disabled=!consentPersonal.checked}
+consentPersonal.addEventListener('change',syncCheckoutConsents);
 syncCheckoutConsents();
 const dlg=document.getElementById('checkout');let qty=1;let customQty=1;let selectedFormat='custom';let checkoutOpener=null;const fmt=n=>new Intl.NumberFormat('ru-RU').format(n)+' ₽';
 function render(){
@@ -50,7 +50,7 @@ document.querySelectorAll('.lesson-format-select').forEach(button=>button.addEve
  document.querySelector('.course-buyer-fields').scrollIntoView({behavior:'smooth',block:'start'});
 }));
 document.getElementById('demoButton').addEventListener('click',async()=>{
- if(!consentPersonal.checked||!consentMarketing.checked){syncCheckoutConsents();return;}
+ if(!consentPersonal.checked){syncCheckoutConsents();return;}
 
  const message=document.getElementById('demoMessage');
  const form=document.getElementById('checkoutForm');
