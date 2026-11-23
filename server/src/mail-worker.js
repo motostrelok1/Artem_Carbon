@@ -2,6 +2,7 @@ import {resolveLessonPhotoPath} from './mail-photo.js';
 import pg from 'pg';
 import nodemailer from 'nodemailer';
 import {purchaseMessage} from './email-template.js';
+import {createLessonAccessUrl} from './lesson-access.js';
 const config={
  host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT||465),
  user:process.env.SMTP_USER,password:process.env.SMTP_PASSWORD,from:process.env.SMTP_FROM,
@@ -45,7 +46,8 @@ async function processOne(){
   const hasLessonPhoto=Boolean(photoPath);
   const message=purchaseMessage({...r.rows[0],amount_kopecks:Number(r.rows[0].amount_kopecks),
    items:details.rows.map(x=>({...x,unit_price_kopecks:Number(x.unit_price_kopecks)})),
-   lessonNumbers:serials.rows.map(x=>x.number),hasLessonPhoto});
+   lessonNumbers:serials.rows.map(x=>x.number),hasLessonPhoto,
+   lessonAccessUrl:hasLessons?createLessonAccessUrl(job.order_id):null});
   if(hasLessonPhoto)message.attachments=[{
    filename:'5.jpg',path:photoPath,cid:'artems-lesson-photo',
    contentType:'image/jpeg',contentDisposition:'inline'
