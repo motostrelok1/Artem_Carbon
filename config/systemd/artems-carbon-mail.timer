@@ -1,0 +1,12 @@
+[Unit]
+Description=Process Artem Carbon buyer email outbox each minute
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=1min
+AccuracySec=15s
+Persistent=true
+Unit=artems-carbon-mail.service
+
+[Install]
+WantedBy=timers.target
