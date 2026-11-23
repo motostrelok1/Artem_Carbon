@@ -1,0 +1,24 @@
+[Unit]
+Description=Artem Carbon safe bank-verified reservation reconciliation
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=oneshot
+User=artems-carbon
+Group=artems-carbon
+WorkingDirectory=/opt/artems-carbon/server
+EnvironmentFile=/opt/artems-carbon/server/.env
+Environment=NODE_ENV=production
+Environment=NODE_EXTRA_CA_CERTS=/opt/artems-carbon/certs/russian_trusted_root_ca.crt
+# Skipped successfully until BOTH real payments and reconciliation are explicitly enabled.
+# No number is ever released solely because its TTL expired.
+ExecCondition=/usr/bin/bash -c 'test "$$PAYMENTS_ENABLED" = "true" && test "$$RECONCILIATION_ENABLED" = "true"'
+ExecStart=/usr/bin/node /opt/artems-carbon/server/src/reservation-reconciler.js --once
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+TimeoutStartSec=600
