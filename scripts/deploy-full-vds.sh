@@ -399,4 +399,21 @@ systemctl is-active --quiet artemcarbon-monitor.timer || {
   echo "Monitoring timer failed to start." >&2; exit 1;
 }
 echo "Artem Carbon monitoring timer enabled (every 5 minutes). Email/Telegram credentials require root-owned /etc/artemcarbon-monitor.env."
+# Buyer email outbox: timer is safe to install while EMAIL_ENABLED=false.
+# Send one queued email per run only after the operator explicitly enables buyer email.
+MAIL_SERVICE_SOURCE="$REPO_DIR/config/systemd/artems-carbon-mail.service"
+MAIL_TIMER_SOURCE="$REPO_DIR/config/systemd/artems-carbon-mail.timer"
+[[ -s "$MAIL_SERVICE_SOURCE" && -s "$MAIL_TIMER_SOURCE" ]] || {
+  echo "Buyer email unit files are missing." >&2; exit 1;
+}
+install -o root -g root -m 0644 "$MAIL_SERVICE_SOURCE" /etc/systemd/system/artems-carbon-mail.service
+install -o root -g root -m 0644 "$MAIL_TIMER_SOURCE" /etc/systemd/system/artems-carbon-mail.timer
+systemctl daemon-reload
+systemctl enable --now artems-carbon-mail.timer
+systemctl restart artems-carbon-mail.timer
+systemctl is-active --quiet artems-carbon-mail.timer || {
+  echo "Buyer email timer failed to start." >&2; exit 1;
+}
+echo "Buyer email timer installed (one queued email per minute; EMAIL_ENABLED controls sending)."
+
 echo "Full website + admin + API deployed on this VDS over HTTPS."
