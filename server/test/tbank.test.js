@@ -18,3 +18,20 @@ test('cart price always uses server amount',()=>{
  assert.throws(()=>validateCart([{sku:'video_lesson',quantity:0}]));
  assert.throws(()=>validateCart([{sku:'other',quantity:1}]));
 });
+
+test('Init preserves fiscal receipt payload for T-Bank to forward to CloudKassir',()=>{
+ const receipt={Email:'buyer@example.ru',Taxation:'usn_income',Items:[{
+  Name:'Ложка карбоновая',Quantity:1,Price:2500000,Amount:2500000,
+  Tax:'none',PaymentMethod:'full_payment',PaymentObject:'commodity'
+ }]};
+ const payload=buildInit({
+  terminalKey:'test-terminal',password:'CI-only-secret',orderId:'order-1',
+  amount:2500000,description:'Ложка карбоновая',
+  notificationUrl:'https://api.example.ru/notify',
+  successUrl:'https://site.example.ru/ok',
+  failUrl:'https://site.example.ru/fail',email:'buyer@example.ru',receipt
+ });
+ assert.deepEqual(payload.Receipt,receipt);
+ assert.equal(payload.Receipt.Items[0].Amount,payload.Amount);
+ assert.ok(validToken(payload,'CI-only-secret'));
+});
