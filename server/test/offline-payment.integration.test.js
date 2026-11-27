@@ -104,6 +104,20 @@ test('isolated T-Bank payment: Init, signed CONFIRMED, serials, email queue, dup
   assert.match(bankRequests[0].NotificationURL,/\/api\/payments\/tbank\/notification$/);
   assert.equal(bankRequests[0].Receipt.Taxation,'usn_income');
   assert.equal(bankRequests[0].Receipt.Items[0].Tax,'none');
+  // CloudKassir is connected through the T-Bank merchant account: the site's
+  // responsibility is to supply a consistent fiscal Receipt in /v2/Init.
+  // A mock bank only verifies payload generation, never actual KKT registration.
+  assert.equal(bankRequests[0].Receipt.Email,buyer.email);
+  assert.equal(bankRequests[0].Receipt.Items.length,1);
+  assert.equal(bankRequests[0].Receipt.Items[0].Name,'Изготовление карбоновой детали');
+  assert.equal(bankRequests[0].Receipt.Items[0].Quantity,2);
+  assert.equal(bankRequests[0].Receipt.Items[0].Price,200000);
+  assert.equal(bankRequests[0].Receipt.Items[0].Amount,400000);
+  assert.equal(bankRequests[0].Receipt.Items[0].PaymentObject,'service');
+  assert.equal(bankRequests[0].Receipt.Items[0].PaymentMethod,'full_payment');
+  assert.equal(bankRequests[0].Receipt.Items.reduce((n,i)=>n+i.Amount,0),
+   bankRequests[0].Amount,'Fiscal items must match the charge');
+
   const before=await db.query('SELECT COUNT(*)::int AS n FROM lesson_number_pool WHERE order_id IS NOT NULL');
   assert.equal(before.rows[0].n,0,'Init does not assign paid serials');
   const prepayment=await db.query('SELECT number FROM lesson_number_pool WHERE reserved_order_id=$1 ORDER BY number',[orderId]);
